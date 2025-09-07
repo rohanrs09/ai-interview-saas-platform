@@ -1,36 +1,210 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# AI Mock Interview SaaS Platform
+
+A comprehensive full-stack SaaS platform for AI-driven mock interviews, combining resume analysis, skill gap identification, and personalized interview questions with real-time feedback and analytics.
+
+## Features
+
+### For Candidates
+- **Resume Upload & Analysis**: Upload your resume and get AI-powered skill extraction
+- **Skill Gap Analysis**: Compare your skills against job requirements
+- **AI-Generated Questions**: Get personalized interview questions based on skill gaps
+- **Voice Interviews**: Practice with voice-based interviews using Vapi.ai
+- **Real-time Proctoring**: Ensure interview integrity with video/audio monitoring
+- **Detailed Feedback**: Receive comprehensive AI-generated feedback reports
+- **Progress Tracking**: Monitor your improvement over time
+
+### For Recruiters
+- **Job Posting Management**: Create and manage job descriptions
+- **Candidate Analytics**: View candidate performance and analytics
+- **Interview Scheduling**: Schedule and manage interview sessions
+- **Team Management**: Manage multiple recruiters and candidates
+- **Custom Questions**: Create custom interview questions
+- **API Access**: Integrate with existing HR systems
+
+## Tech Stack
+
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Authentication**: Clerk
+- **Database**: PostgreSQL with Drizzle ORM
+- **AI Services**: Google Gemini AI, Vapi.ai
+- **Payments**: Stripe
+- **Hosting**: Vercel
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- PostgreSQL database
+- Clerk account
+- Stripe account
+- Google Gemini API key
+- Vapi.ai account
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd ai-interview
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp env.example .env.local
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Configure your environment variables in `.env.local`:
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/ai_interview_db"
 
-## Learn More
+# Clerk Authentication
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
+CLERK_SECRET_KEY="sk_test_..."
+NEXT_PUBLIC_CLERK_SIGN_IN_URL="/sign-in"
+NEXT_PUBLIC_CLERK_SIGN_UP_URL="/sign-up"
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL="/dashboard"
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL="/dashboard"
 
-To learn more about Next.js, take a look at the following resources:
+# Stripe
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY="pk_test_..."
+STRIPE_SECRET_KEY="sk_test_..."
+STRIPE_WEBHOOK_SECRET="whsec_..."
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Google Gemini AI
+GOOGLE_GEMINI_API_KEY="your_gemini_api_key"
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+# Vapi AI
+VAPI_API_KEY="your_vapi_api_key"
+VAPI_PHONE_NUMBER_ID="your_phone_number_id"
 
-## Deploy on Vercel
+# App Configuration
+NEXT_PUBLIC_APP_URL="http://localhost:3000"
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+5. Set up the database:
+```bash
+# Generate migrations
+npm run db:generate
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+# Push schema to database
+npm run db:push
+```
+
+6. Start the development server:
+```bash
+npm run dev
+```
+
+## Database Schema
+
+The application uses the following main entities:
+
+- **Users**: User accounts with role-based access (candidate/recruiter)
+- **CandidateProfiles**: Resume data and extracted skills
+- **JobDescriptions**: Job postings with required skills
+- **InterviewSessions**: Interview instances with status and scores
+- **InterviewQuestions**: Questions generated for each session
+- **FeedbackReports**: AI-generated feedback and analysis
+- **Subscriptions**: Stripe subscription management
+- **ProctoringLogs**: Video/audio monitoring data
+
+## API Endpoints
+
+### Authentication
+- Handled by Clerk middleware
+
+### Resume Management
+- `POST /api/resume/upload` - Upload and analyze resume
+
+### Skills
+- `POST /api/skills/match` - Match candidate skills with job requirements
+
+### Interviews
+- `POST /api/interviews` - Create new interview session
+- `GET /api/interviews` - Get user's interview sessions
+- `POST /api/interviews/[id]/answer` - Submit interview answer
+- `POST /api/interviews/[id]/complete` - Complete interview and generate feedback
+- `GET /api/interviews/[id]/feedback` - Get interview feedback
+
+### Webhooks
+- `POST /api/webhooks/stripe` - Handle Stripe subscription events
+
+## Deployment
+
+### Vercel Deployment
+
+1. Connect your GitHub repository to Vercel
+2. Set up environment variables in Vercel dashboard
+3. Deploy automatically on push to main branch
+
+### Database Setup
+
+For production, use a managed PostgreSQL service like:
+- Vercel Postgres
+- Supabase
+- PlanetScale
+- AWS RDS
+
+## Development
+
+### Database Commands
+
+```bash
+# Generate new migration
+npm run db:generate
+
+# Apply migrations
+npm run db:migrate
+
+# Push schema changes (development)
+npm run db:push
+
+# Open Drizzle Studio
+npm run db:studio
+```
+
+### Code Structure
+
+```
+app/
+├── (auth)/          # Authentication pages
+├── api/             # API routes
+├── dashboard/       # Dashboard pages
+├── interviews/      # Interview pages
+└── pricing/         # Pricing page
+
+components/
+├── ui/              # Reusable UI components
+└── ...              # Feature components
+
+lib/
+├── db.ts            # Database connection
+├── schema.ts        # Database schema
+├── ai.ts            # AI service integration
+├── vapi.ts          # Vapi.ai integration
+├── stripe.ts        # Stripe integration
+└── utils.ts         # Utility functions
+```
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests if applicable
+5. Submit a pull request
+
+## License
+
+This project is licensed under the MIT License.
+
+## Support
+
+For support, email support@ai-interview.com or create an issue in the repository.
