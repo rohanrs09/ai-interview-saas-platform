@@ -35,7 +35,7 @@ A comprehensive full-stack SaaS platform for AI-driven mock interviews, combinin
 ### Prerequisites
 
 - Node.js 18+ 
-- PostgreSQL database
+- Supabase account (replaces PostgreSQL)
 - Clerk account
 - Stripe account
 - Google Gemini API key
@@ -61,8 +61,10 @@ cp env.example .env.local
 
 4. Configure your environment variables in `.env.local`:
 ```env
-# Database
-DATABASE_URL="postgresql://username:password@localhost:5432/ai_interview_db"
+# Supabase Database
+DATABASE_URL="postgresql://postgres:[YOUR-PASSWORD]@db.[YOUR-PROJECT-REF].supabase.co:5432/postgres"
+NEXT_PUBLIC_SUPABASE_URL="https://[YOUR-PROJECT-REF].supabase.co"
+NEXT_PUBLIC_SUPABASE_ANON_KEY="[YOUR-ANON-KEY]"
 
 # Clerk Authentication
 NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY="pk_test_..."
@@ -88,16 +90,21 @@ VAPI_PHONE_NUMBER_ID="your_phone_number_id"
 NEXT_PUBLIC_APP_URL="http://localhost:3000"
 ```
 
-5. Set up the database:
+5. Set up Supabase:
+   - Create a new project at [supabase.com](https://supabase.com)
+   - Get your database URL and API keys from the project settings
+   - Update your `.env.local` with the Supabase credentials
+
+6. Set up the database:
 ```bash
 # Generate migrations
 npm run db:generate
 
-# Push schema to database
+# Push schema to Supabase database
 npm run db:push
 ```
 
-6. Start the development server:
+7. Start the development server:
 ```bash
 npm run dev
 ```
@@ -146,11 +153,12 @@ The application uses the following main entities:
 
 ### Database Setup
 
-For production, use a managed PostgreSQL service like:
-- Vercel Postgres
-- Supabase
-- PlanetScale
-- AWS RDS
+The application uses Supabase (PostgreSQL-based) which provides:
+- Managed PostgreSQL database
+- Built-in authentication (optional)
+- Real-time subscriptions
+- File storage
+- Edge functions
 
 ## Development
 
