@@ -5,14 +5,14 @@ import { ArrowRight, Brain, Users, BarChart3, Mic, Camera } from 'lucide-react'
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-white">
 
       {/* Hero Section */}
       <section className="py-20 px-4">
         <div className="container mx-auto text-center">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Master Your Next Interview with
-            <span className="text-blue-600"> AI-Powered Practice</span>
+            <span className="text-purple-600"> AI-Powered Practice</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Get personalized mock interviews, real-time feedback, and detailed analytics 
@@ -43,7 +43,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card>
               <CardHeader>
-                <Brain className="h-12 w-12 text-blue-600 mb-4" />
+                <Brain className="h-12 w-12 text-gray-900 mb-4" />
                 <CardTitle>AI-Generated Questions</CardTitle>
                 <CardDescription>
                   Get personalized questions based on your resume and target job description
@@ -53,7 +53,7 @@ export default function HomePage() {
 
             <Card>
               <CardHeader>
-                <Mic className="h-12 w-12 text-green-600 mb-4" />
+                <Mic className="h-12 w-12 text-gray-900 mb-4" />
                 <CardTitle>Voice Interviews</CardTitle>
                 <CardDescription>
                   Practice with voice-based interviews using advanced speech recognition
@@ -63,7 +63,7 @@ export default function HomePage() {
 
             <Card>
               <CardHeader>
-                <Camera className="h-12 w-12 text-purple-600 mb-4" />
+                <Camera className="h-12 w-12 text-gray-900 mb-4" />
                 <CardTitle>Real-time Proctoring</CardTitle>
                 <CardDescription>
                   Ensure interview integrity with AI-powered proctoring and monitoring

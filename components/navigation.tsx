@@ -15,8 +15,10 @@ export function Navigation() {
       <header className="border-b bg-white/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">AI Interview</span>
+            <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
+              <Brain className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-purple-600">AI Interview</span>
           </Link>
           <div className="flex space-x-4">
             <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
@@ -32,15 +34,17 @@ export function Navigation() {
       <header className="border-b bg-white/80 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <Link href="/" className="flex items-center space-x-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">AI Interview</span>
+            <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
+              <Brain className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-2xl font-bold text-purple-600">AI Interview</span>
           </Link>
           <div className="flex space-x-4">
             <Link href="/sign-in">
-              <Button variant="ghost">Sign In</Button>
+              <Button variant="outline">Sign In</Button>
             </Link>
             <Link href="/sign-up">
-              <Button>Get Started</Button>
+              <Button variant="outline">Get Started</Button>
             </Link>
           </div>
         </div>
@@ -52,8 +56,10 @@ export function Navigation() {
     <header className="border-b bg-white/80 backdrop-blur-sm">
       <div className="container mx-auto px-4 py-4 flex justify-between items-center">
         <Link href="/" className="flex items-center space-x-2">
-          <Brain className="h-8 w-8 text-blue-600" />
-          <span className="text-2xl font-bold text-gray-900">AI Interview</span>
+          <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
+            <Brain className="h-5 w-5 text-white" />
+          </div>
+          <span className="text-2xl font-bold text-purple-600">AI Interview</span>
         </Link>
         
         <nav className="hidden md:flex items-center space-x-6">

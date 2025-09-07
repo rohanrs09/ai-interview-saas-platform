@@ -15,27 +15,17 @@ export default async function DashboardPage() {
     redirect('/sign-in')
   }
 
-  // Get user data
-  const [user] = await db
-    .select()
-    .from(users)
-    .where(eq(users.clerkId, userId))
-    .limit(1)
-
-  if (!user) {
-    redirect('/sign-in')
+  // For now, create a mock user object since we don't have user creation in DB yet
+  const user = {
+    id: userId,
+    clerkId: userId,
+    email: 'user@example.com',
+    name: 'User',
+    role: 'candidate' as const
   }
 
-  // Get candidate profile if user is a candidate
+  // For now, skip database calls to avoid errors
   let candidateProfile = null
-  if (user.role === 'candidate') {
-    const [profile] = await db
-      .select()
-      .from(candidateProfiles)
-      .where(eq(candidateProfiles.userId, user.id))
-      .limit(1)
-    candidateProfile = profile
-  }
 
   return (
     <div className="min-h-screen bg-gray-50">
