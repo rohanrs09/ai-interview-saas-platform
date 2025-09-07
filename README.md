@@ -211,8 +211,8 @@ lib/
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under @layfirto.
 
 ## Support
 
-For support, email support@ai-interview.com or create an issue in the repository.
+For support, email shelkerohan7309@gmail.com or create an issue in the repository.
