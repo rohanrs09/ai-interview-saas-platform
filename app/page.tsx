@@ -9,24 +9,24 @@ export default function HomePage() {
 
       {/* Hero Section */}
       <section className="py-20 px-4">
-        <div className="container mx-auto text-center">
+        <div className="container mx-auto text-center max-w-6xl">
           <h1 className="text-5xl font-bold text-gray-900 mb-6">
             Master Your Next Interview with
             <span className="text-purple-600"> AI-Powered Practice</span>
           </h1>
-          <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+          <p className="text-xl text-gray-600 mb-8 max-w-4xl mx-auto leading-relaxed">
             Get personalized mock interviews, real-time feedback, and detailed analytics 
             to land your dream job. Practice with AI that adapts to your skill level.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link href="/sign-up">
-              <Button size="lg" className="text-lg px-8 py-6">
+              <Button size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 Start Practicing Now
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
             </Link>
             <Link href="/pricing">
-              <Button variant="outline" size="lg" className="text-lg px-8 py-6">
+              <Button variant="outline" size="lg" className="text-lg px-8 py-6 w-full sm:w-auto">
                 View Pricing
               </Button>
             </Link>
@@ -36,11 +36,11 @@ export default function HomePage() {
 
       {/* Features Section */}
       <section className="py-20 px-4 bg-white">
-        <div className="container mx-auto">
+        <div className="container mx-auto max-w-6xl">
           <h2 className="text-3xl font-bold text-center text-gray-900 mb-12">
             Everything You Need to Ace Your Interview
           </h2>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
             <Card>
               <CardHeader>
                 <Brain className="h-12 w-12 text-gray-900 mb-4" />
@@ -56,7 +56,7 @@ export default function HomePage() {
                 <Mic className="h-12 w-12 text-gray-900 mb-4" />
                 <CardTitle>Voice Interviews</CardTitle>
                 <CardDescription>
-                  Practice with voice-based interviews using advanced speech recognition
+                  Practice with voice-based interviews using advanced speech recognition technology
                 </CardDescription>
               </CardHeader>
             </Card>

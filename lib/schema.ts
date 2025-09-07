@@ -4,6 +4,9 @@ import { pgTable, uuid, text, timestamp, json, integer, boolean, varchar, pgEnum
 export const userRoleEnum = pgEnum('user_role', ['candidate', 'recruiter']);
 export const interviewStatusEnum = pgEnum('interview_status', ['pending', 'in_progress', 'completed', 'cancelled']);
 export const subscriptionStatusEnum = pgEnum('subscription_status', ['active', 'inactive', 'cancelled', 'past_due']);
+export const jobTypeEnum = pgEnum('job_type', ['full-time', 'part-time', 'contract', 'internship']);
+export const difficultyEnum = pgEnum('difficulty', ['beginner', 'intermediate', 'advanced']);
+export const questionTypeEnum = pgEnum('question_type', ['technical', 'behavioral', 'situational']);
 
 // Users table
 export const users = pgTable('users', {
@@ -38,6 +41,12 @@ export const jobDescriptions = pgTable('job_descriptions', {
   requiredSkills: json('required_skills').$type<string[]>(),
   location: varchar('location', { length: 255 }),
   salaryRange: varchar('salary_range', { length: 100 }),
+  jobType: jobTypeEnum('job_type').notNull().default('full-time'),
+  experience: varchar('experience', { length: 100 }),
+  difficulty: difficultyEnum('difficulty').notNull().default('intermediate'),
+  estimatedTime: integer('estimated_time').default(30), // in minutes
+  questionsCount: integer('questions_count').default(5),
+  applicants: integer('applicants').default(0),
   createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   isActive: boolean('is_active').default(true).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
@@ -68,6 +77,9 @@ export const interviewQuestions = pgTable('interview_questions', {
   answerText: text('answer_text'),
   score: integer('score'),
   order: integer('order').notNull(),
+  type: questionTypeEnum('type').notNull().default('technical'),
+  difficulty: difficultyEnum('difficulty').notNull().default('intermediate'),
+  timeLimit: integer('time_limit'), // in minutes
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
 });
@@ -106,5 +118,53 @@ export const proctoringLogs = pgTable('proctoring_logs', {
   eventType: varchar('event_type', { length: 50 }).notNull(), // 'video_frame', 'audio_snippet', 'anomaly'
   data: json('data').$type<Record<string, any>>(),
   severity: varchar('severity', { length: 20 }).default('low'), // 'low', 'medium', 'high'
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Skills table for better skill management
+export const skills = pgTable('skills', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 100 }).notNull().unique(),
+  category: varchar('category', { length: 50 }), // 'frontend', 'backend', 'database', etc.
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// User skills junction table
+export const userSkills = pgTable('user_skills', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  skillId: uuid('skill_id').references(() => skills.id, { onDelete: 'cascade' }).notNull(),
+  proficiency: integer('proficiency').default(1), // 1-5 scale
+  yearsOfExperience: integer('years_of_experience').default(0),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Interview templates table
+export const interviewTemplates = pgTable('interview_templates', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  jobType: jobTypeEnum('job_type').notNull(),
+  difficulty: difficultyEnum('difficulty').notNull(),
+  estimatedTime: integer('estimated_time').notNull(),
+  questionsCount: integer('questions_count').notNull(),
+  skills: json('skills').$type<string[]>(),
+  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  isPublic: boolean('is_public').default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+// Template questions table
+export const templateQuestions = pgTable('template_questions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  templateId: uuid('template_id').references(() => interviewTemplates.id, { onDelete: 'cascade' }).notNull(),
+  questionText: text('question_text').notNull(),
+  type: questionTypeEnum('type').notNull(),
+  difficulty: difficultyEnum('difficulty').notNull(),
+  skillTag: varchar('skill_tag', { length: 100 }),
+  timeLimit: integer('time_limit'),
+  order: integer('order').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });

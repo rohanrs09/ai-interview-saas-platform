@@ -1,107 +1,120 @@
 'use client'
 
-import { useUser, SignOutButton } from '@clerk/nextjs'
-import { Button } from '@/components/ui/button'
-import { Brain, User, LogOut } from 'lucide-react'
+import { useUser, SignInButton, SignOutButton, UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { Brain, Menu, X } from 'lucide-react'
+import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 
 export function Navigation() {
-  const { user, isLoaded } = useUser()
-  const pathname = usePathname()
-
-  if (!isLoaded) {
-    return (
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
-              <Brain className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-purple-600">AI Interview</span>
-          </Link>
-          <div className="flex space-x-4">
-            <div className="h-8 w-16 bg-gray-200 rounded animate-pulse" />
-            <div className="h-8 w-20 bg-gray-200 rounded animate-pulse" />
-          </div>
-        </div>
-      </header>
-    )
-  }
-
-  if (!user) {
-    return (
-      <header className="border-b bg-white/80 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
-              <Brain className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-2xl font-bold text-purple-600">AI Interview</span>
-          </Link>
-          <div className="flex space-x-4">
-            <Link href="/sign-in">
-              <Button variant="outline">Sign In</Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button variant="outline">Get Started</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
-    )
-  }
+  const { isSignedIn, user } = useUser()
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
 
   return (
-    <header className="border-b bg-white/80 backdrop-blur-sm">
-      <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-        <Link href="/" className="flex items-center space-x-2">
-          <div className="h-8 w-8 bg-purple-600 rounded-lg flex items-center justify-center">
-            <Brain className="h-5 w-5 text-white" />
-          </div>
-          <span className="text-2xl font-bold text-purple-600">AI Interview</span>
-        </Link>
-        
-        <nav className="hidden md:flex items-center space-x-6">
-          <Link 
-            href="/dashboard" 
-            className={`text-sm font-medium transition-colors ${
-              pathname === '/dashboard' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Dashboard
+    <nav className="bg-white shadow-sm border-b">
+      <div className="container mx-auto px-4">
+        <div className="flex justify-between items-center h-16">
+          {/* Logo */}
+          <Link href="/" className="flex items-center space-x-2">
+            <Brain className="h-8 w-8 text-blue-600" />
+            <span className="text-xl font-bold text-gray-900">AI Interview</span>
           </Link>
-          <Link 
-            href="/interviews" 
-            className={`text-sm font-medium transition-colors ${
-              pathname.startsWith('/interviews') ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Interviews
-          </Link>
-          <Link 
-            href="/pricing" 
-            className={`text-sm font-medium transition-colors ${
-              pathname === '/pricing' ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Pricing
-          </Link>
-        </nav>
 
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 text-sm text-gray-600">
-            <User className="h-4 w-4" />
-            <span>{user.firstName || user.emailAddresses[0].emailAddress}</span>
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            <Link href="/" className="text-gray-600 hover:text-gray-900">
+              Home
+            </Link>
+            <Link href="/about" className="text-gray-600 hover:text-gray-900">
+              About
+            </Link>
+            <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
+              Pricing
+            </Link>
+            <Link href="/contact" className="text-gray-600 hover:text-gray-900">
+              Contact
+            </Link>
+            
+            {isSignedIn ? (
+              <div className="flex items-center space-x-4">
+                <Link href="/interviews" className="text-gray-600 hover:text-gray-900">
+                  Interviews
+                </Link>
+                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+                  Dashboard
+                </Link>
+                <UserButton afterSignOutUrl="/" />
+              </div>
+            ) : (
+              <div className="flex items-center space-x-4">
+                <SignInButton mode="modal">
+                  <Button variant="outline">Sign In</Button>
+                </SignInButton>
+                <SignInButton mode="modal">
+                  <Button>Get Started</Button>
+                </SignInButton>
+              </div>
+            )}
           </div>
-          <SignOutButton>
-            <Button variant="outline" size="sm">
-              <LogOut className="h-4 w-4 mr-2" />
-              Sign Out
-            </Button>
-          </SignOutButton>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile Navigation */}
+        {isMenuOpen && (
+          <div className="md:hidden py-4 border-t">
+            <div className="flex flex-col space-y-4">
+              <Link href="/" className="text-gray-600 hover:text-gray-900">
+                Home
+              </Link>
+              <Link href="/about" className="text-gray-600 hover:text-gray-900">
+                About
+              </Link>
+              <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
+                Pricing
+              </Link>
+              <Link href="/contact" className="text-gray-600 hover:text-gray-900">
+                Contact
+              </Link>
+              
+              {isSignedIn ? (
+                <>
+                  <Link href="/interviews" className="text-gray-600 hover:text-gray-900">
+                    Interviews
+                  </Link>
+                  <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
+                    Dashboard
+                  </Link>
+                  <div className="pt-4 border-t">
+                    <SignOutButton>
+                      <Button variant="outline" className="w-full">
+                        Sign Out
+                      </Button>
+                    </SignOutButton>
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-col space-y-2 pt-4 border-t">
+                  <SignInButton mode="modal">
+                    <Button variant="outline" className="w-full">Sign In</Button>
+                  </SignInButton>
+                  <SignInButton mode="modal">
+                    <Button className="w-full">Get Started</Button>
+                  </SignInButton>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
-    </header>
+    </nav>
   )
 }

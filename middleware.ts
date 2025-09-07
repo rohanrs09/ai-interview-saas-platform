@@ -6,6 +6,11 @@ const isPublicRoute = createRouteMatcher([
   '/about',
   '/contact',
   '/api/webhooks/stripe',
+  '/api/jobs',
+  '/api/analytics',
+  '/api/candidates',
+  '/api/stripe/create-checkout-session',
+  '/api/stripe/create-portal-session',
 ]);
 
 export default clerkMiddleware((auth, req) => {
@@ -17,3 +22,5 @@ export default clerkMiddleware((auth, req) => {
 export const config = {
   matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 };
+
+

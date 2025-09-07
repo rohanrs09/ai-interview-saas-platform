@@ -1,31 +1,22 @@
 import { redirect } from 'next/navigation'
-import { auth } from '@clerk/nextjs/server'
-import { db } from '@/lib/db'
-import { users, candidateProfiles } from '@/lib/schema'
-import { eq } from 'drizzle-orm'
+import { auth, currentUser } from '@clerk/nextjs/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
-import { Brain, FileText, BarChart3, Clock } from 'lucide-react'
+import { Brain, FileText, BarChart3, Clock, User, LogOut } from 'lucide-react'
+import { SignOutButton } from '@clerk/nextjs'
 
 export default async function DashboardPage() {
   const { userId } = await auth()
+  const user = await currentUser()
   
-  if (!userId) {
+  if (!userId || !user) {
     redirect('/sign-in')
   }
 
-  // For now, create a mock user object since we don't have user creation in DB yet
-  const user = {
-    id: userId,
-    clerkId: userId,
-    email: 'user@example.com',
-    name: 'User',
-    role: 'candidate' as const
-  }
-
-  // For now, skip database calls to avoid errors
-  let candidateProfile = null
+  // Determine user role - for now, default to candidate
+  // In a real app, you'd check this from your database
+  const userRole = 'candidate' as const
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,10 +28,16 @@ export default async function DashboardPage() {
             <span className="text-2xl font-bold text-gray-900">AI Interview</span>
           </div>
           <div className="flex items-center space-x-4">
-            <span className="text-gray-600">Welcome, {user.name}</span>
-            <Button variant="outline" size="sm">
-              Sign Out
-            </Button>
+            <div className="flex items-center space-x-2">
+              <User className="h-5 w-5 text-gray-600" />
+              <span className="text-gray-600">Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}</span>
+            </div>
+            <SignOutButton>
+              <Button variant="outline" size="sm">
+                <LogOut className="h-4 w-4 mr-2" />
+                Sign Out
+              </Button>
+            </SignOutButton>
           </div>
         </div>
       </header>
@@ -48,17 +45,17 @@ export default async function DashboardPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            {user.role === 'candidate' ? 'Your Dashboard' : 'Recruiter Dashboard'}
+            {userRole === 'candidate' ? 'Your Dashboard' : 'Recruiter Dashboard'}
           </h1>
           <p className="text-gray-600">
-            {user.role === 'candidate' 
+            {userRole === 'candidate' 
               ? 'Track your interview progress and improve your skills'
               : 'Manage candidates and create job postings'
             }
           </p>
         </div>
 
-        {user.role === 'candidate' ? (
+        {userRole === 'candidate' ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card>
               <CardHeader>
@@ -69,18 +66,9 @@ export default async function DashboardPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {candidateProfile?.resumeText ? (
-                  <div>
-                    <p className="text-sm text-green-600 mb-2">✓ Resume uploaded</p>
-                    <p className="text-sm text-gray-600">
-                      {candidateProfile.extractedSkills?.length || 0} skills identified
-                    </p>
-                  </div>
-                ) : (
-                  <Link href="/dashboard/resume">
-                    <Button className="w-full">Upload Resume</Button>
-                  </Link>
-                )}
+                <Link href="/dashboard/resume">
+                  <Button className="w-full">Upload Resume</Button>
+                </Link>
               </CardContent>
             </Card>
 

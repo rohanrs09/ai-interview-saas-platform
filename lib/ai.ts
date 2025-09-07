@@ -50,10 +50,26 @@ export class AIService {
     }
   }
 
-  async generateInterviewQuestions(skillGaps: string[], jobTitle: string): Promise<Array<{ skill: string; question: string }>> {
+  async generateInterviewQuestions(skillGaps: string[], jobTitle: string): Promise<Array<{ 
+    id: string; 
+    skill: string; 
+    question: string; 
+    type: 'technical' | 'behavioral' | 'situational';
+    difficulty: 'easy' | 'medium' | 'hard';
+    timeLimit?: number;
+  }>> {
     const prompt = `
     Generate 2-3 interview questions for each of the following skill gaps for a ${jobTitle} position.
-    Return a JSON array of objects with "skill" and "question" properties.
+    Include a mix of technical, behavioral, and situational questions.
+    Return a JSON array of objects with the following structure:
+    {
+      "id": "unique_id",
+      "skill": "skill_name",
+      "question": "question_text",
+      "type": "technical|behavioral|situational",
+      "difficulty": "easy|medium|hard",
+      "timeLimit": 5
+    }
     
     Skill gaps: ${skillGaps.join(', ')}
     `;
@@ -119,6 +135,151 @@ export class AIService {
         recommendations: 'Please try again later.'
       };
     }
+  }
+
+  async generateJobDescription(
+    title: string,
+    company: string,
+    requirements: string[],
+    experience: string
+  ): Promise<string> {
+    const prompt = `
+    Generate a comprehensive job description for a ${title} position at ${company}.
+    
+    Requirements: ${requirements.join(', ')}
+    Experience Level: ${experience}
+    
+    Include:
+    - Company overview
+    - Role responsibilities
+    - Required skills and qualifications
+    - Preferred qualifications
+    - Benefits and perks
+    - Application instructions
+    
+    Make it professional and engaging.
+    `;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (error) {
+      console.error('Error generating job description:', error);
+      return 'Unable to generate job description at this time.';
+    }
+  }
+
+  async analyzeResume(resumeText: string): Promise<{
+    skills: string[];
+    experience: string;
+    education: string;
+    summary: string;
+    strengths: string[];
+    improvements: string[];
+  }> {
+    const prompt = `
+    Analyze the following resume and extract key information.
+    Return a JSON object with:
+    {
+      "skills": ["skill1", "skill2", ...],
+      "experience": "years of experience",
+      "education": "education summary",
+      "summary": "brief professional summary",
+      "strengths": ["strength1", "strength2", ...],
+      "improvements": ["improvement1", "improvement2", ...]
+    }
+    
+    Resume text:
+    ${resumeText}
+    `;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const analysis = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
+      return analysis;
+    } catch (error) {
+      console.error('Error analyzing resume:', error);
+      return {
+        skills: [],
+        experience: 'Unknown',
+        education: 'Unknown',
+        summary: 'Unable to analyze resume at this time.',
+        strengths: [],
+        improvements: []
+      };
+    }
+  }
+
+  async generateFeedback(
+    question: string,
+    answer: string,
+    skill: string
+  ): Promise<{
+    score: number;
+    feedback: string;
+    suggestions: string[];
+  }> {
+    const prompt = `
+    Evaluate the following interview answer and provide detailed feedback.
+    
+    Question: ${question}
+    Answer: ${answer}
+    Skill Area: ${skill}
+    
+    Return a JSON object with:
+    {
+      "score": 85,
+      "feedback": "detailed feedback on the answer",
+      "suggestions": ["suggestion1", "suggestion2", ...]
+    }
+    
+    Score should be 0-100 based on:
+    - Technical accuracy
+    - Clarity of explanation
+    - Problem-solving approach
+    - Communication skills
+    `;
+
+    try {
+      const result = await this.model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      const feedback = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
+      return feedback;
+    } catch (error) {
+      console.error('Error generating feedback:', error);
+      return {
+        score: 0,
+        feedback: 'Unable to generate feedback at this time.',
+        suggestions: []
+      };
+    }
+  }
+
+  async detectAnomalies(
+    videoData: any,
+    audioData: any,
+    context: string
+  ): Promise<{
+    anomalies: Array<{
+      type: string;
+      severity: 'low' | 'medium' | 'high';
+      description: string;
+      timestamp: number;
+    }>;
+    riskScore: number;
+  }> {
+    // This would integrate with actual proctoring services
+    // For now, return mock data
+    return {
+      anomalies: [],
+      riskScore: 0
+    };
   }
 }
 

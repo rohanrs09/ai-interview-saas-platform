@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2024-06-20',
+  apiVersion: '2025-08-27.basil',
 });
 
 export const STRIPE_PLANS = {
@@ -74,4 +74,95 @@ export async function createCustomerPortalSession(customerId: string) {
   });
 
   return session;
+}
+
+export async function createCustomer(email: string, name: string) {
+  const customer = await stripe.customers.create({
+    email,
+    name,
+  });
+
+  return customer;
+}
+
+export async function getSubscription(subscriptionId: string) {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  return subscription;
+}
+
+export async function cancelSubscription(subscriptionId: string) {
+  const subscription = await stripe.subscriptions.cancel(subscriptionId);
+  return subscription;
+}
+
+export async function updateSubscription(subscriptionId: string, newPriceId: string) {
+  const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+  
+  const updatedSubscription = await stripe.subscriptions.update(subscriptionId, {
+    items: [
+      {
+        id: subscription.items.data[0].id,
+        price: newPriceId,
+      },
+    ],
+    proration_behavior: 'create_prorations',
+  });
+
+  return updatedSubscription;
+}
+
+export async function getInvoices(customerId: string, limit = 10) {
+  const invoices = await stripe.invoices.list({
+    customer: customerId,
+    limit,
+  });
+
+  return invoices;
+}
+
+export async function createPaymentIntent(amount: number, currency = 'usd', customerId?: string) {
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: amount * 100, // Convert to cents
+    currency,
+    customer: customerId,
+    automatic_payment_methods: {
+      enabled: true,
+    },
+  });
+
+  return paymentIntent;
+}
+
+export async function getPaymentMethods(customerId: string) {
+  const paymentMethods = await stripe.paymentMethods.list({
+    customer: customerId,
+    type: 'card',
+  });
+
+  return paymentMethods;
+}
+
+export async function createSetupIntent(customerId: string) {
+  const setupIntent = await stripe.setupIntents.create({
+    customer: customerId,
+    payment_method_types: ['card'],
+  });
+
+  return setupIntent;
+}
+
+export function formatPrice(price: number, currency = 'USD') {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency,
+  }).format(price);
+}
+
+export function getPlanFromPriceId(priceId: string) {
+  for (const [key, plan] of Object.entries(STRIPE_PLANS)) {
+    if (plan.stripePriceId === priceId) {
+      return { key, plan };
+    }
+  }
+  return null;
 }
