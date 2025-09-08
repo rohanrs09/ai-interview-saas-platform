@@ -1,26 +1,25 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+// middleware.ts
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
 const isPublicRoute = createRouteMatcher([
-  '/',
-  '/pricing',
-  '/about',
-  '/contact',
-  '/api/webhooks/stripe',
-  '/api/jobs',
-  '/api/analytics',
-  '/api/candidates',
-  '/api/stripe/create-checkout-session',
-  '/api/stripe/create-portal-session',
+  "/",
+  "/pricing",
+  "/about",
+  "/contact",
+  "/api/webhooks/stripe",
+  "/api/jobs",
+  "/api/analytics",
+  "/api/candidates",
+  "/api/stripe/create-checkout-session",
+  "/api/stripe/create-portal-session",
 ]);
 
 export default clerkMiddleware((auth, req) => {
   if (!isPublicRoute(req)) {
-    auth().protect();
+    auth.protect();
   }
 });
 
 export const config = {
-  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };
-
-
