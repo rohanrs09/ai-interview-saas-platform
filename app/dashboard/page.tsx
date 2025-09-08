@@ -9,6 +9,8 @@ import { SignOutButton } from '@clerk/nextjs'
 export default async function DashboardPage() {
   const { userId } = await auth()
   const user = await currentUser()
+
+  
   
   if (!userId || !user) {
     redirect('/sign-in')
@@ -21,27 +23,7 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <span className="text-2xl font-bold text-gray-900">AI Interview</span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <div className="flex items-center space-x-2">
-              <User className="h-5 w-5 text-gray-600" />
-              <span className="text-gray-600">Welcome, {user.firstName || user.emailAddresses[0]?.emailAddress}</span>
-            </div>
-            <SignOutButton>
-              <Button variant="outline" size="sm">
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </SignOutButton>
-          </div>
-        </div>
-      </header>
-
+     
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">

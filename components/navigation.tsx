@@ -1,120 +1,120 @@
 'use client'
 
-import { useUser, SignInButton, SignOutButton, UserButton } from '@clerk/nextjs'
 import Link from 'next/link'
-import { Brain, Menu, X } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { Brain, Menu, X, LogOut } from 'lucide-react'
+import { useUser, UserButton, SignInButton, SignOutButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
+
+function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
+  const pathname = usePathname()
+  const active = pathname === href || (href !== '/' && pathname.startsWith(href))
+  return (
+    <Link
+      href={href}
+      className={`text-sm font-medium transition-colors ${
+        active ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'
+      }`}
+    >
+      {children}
+    </Link>
+  )
+}
 
 export function Navigation() {
   const { isSignedIn, user } = useUser()
-  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [open, setOpen] = useState(false)
 
   return (
-    <nav className="bg-white shadow-sm border-b">
-      <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
-            <Brain className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">AI Interview</span>
-          </Link>
-
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="/" className="text-gray-600 hover:text-gray-900">
-              Home
-            </Link>
-            <Link href="/about" className="text-gray-600 hover:text-gray-900">
-              About
-            </Link>
-            <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
-              Pricing
-            </Link>
-            <Link href="/contact" className="text-gray-600 hover:text-gray-900">
-              Contact
-            </Link>
-            
-            {isSignedIn ? (
-              <div className="flex items-center space-x-4">
-                <Link href="/interviews" className="text-gray-600 hover:text-gray-900">
-                  Interviews
-                </Link>
-                <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-                  Dashboard
-                </Link>
-                <UserButton afterSignOutUrl="/" />
-              </div>
-            ) : (
-              <div className="flex items-center space-x-4">
-                <SignInButton mode="modal">
-                  <Button variant="outline">Sign In</Button>
-                </SignInButton>
-                <SignInButton mode="modal">
-                  <Button>Get Started</Button>
-                </SignInButton>
-              </div>
-            )}
+    <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur">
+      <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6">
+        {/* Brand */}
+        <Link href="/" className="flex items-center gap-2">
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-100">
+            <Brain className="h-5 w-5 text-blue-600" />
           </div>
+          <span className="text-lg font-semibold text-gray-900">AI Interview</span>
+        </Link>
 
-          {/* Mobile menu button */}
-          <div className="md:hidden">
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-            </button>
-          </div>
+        {/* Desktop nav */}
+        <div className="hidden items-center gap-6 md:flex">
+          <NavLink href="/">Home</NavLink>
+          <NavLink href="/about">About</NavLink>
+          <NavLink href="/pricing">Pricing</NavLink>
+          <NavLink href="/contact">Contact</NavLink>
+          <NavLink href="/interviews">Interviews</NavLink>
+          <NavLink href="/dashboard">Dashboard</NavLink>
         </div>
 
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden py-4 border-t">
-            <div className="flex flex-col space-y-4">
-              <Link href="/" className="text-gray-600 hover:text-gray-900">
-                Home
-              </Link>
-              <Link href="/about" className="text-gray-600 hover:text-gray-900">
-                About
-              </Link>
-              <Link href="/pricing" className="text-gray-600 hover:text-gray-900">
-                Pricing
-              </Link>
-              <Link href="/contact" className="text-gray-600 hover:text-gray-900">
-                Contact
-              </Link>
-              
+        {/* Desktop auth / profile */}
+        <div className="hidden items-center gap-3 md:flex">
+          {isSignedIn ? (
+            <>
+              <span className="text-sm text-gray-700">
+                Welcome, <span className="font-medium">{user?.firstName ?? user?.username ?? 'User'}</span>
+              </span>
+              <SignOutButton>
+                <Button size="sm" variant="outline" className="gap-2">
+                  <LogOut className="h-4 w-4" />
+                  Sign Out
+                </Button>
+              </SignOutButton>
+              <UserButton appearance={{ elements: { userButtonPopoverCard: 'shadow-lg' } }} />
+            </>
+          ) : (
+            <SignInButton mode="modal">
+              <Button size="sm" variant="outline">Sign In</Button>
+            </SignInButton>
+          )}
+        </div>
+
+        {/* Mobile toggle */}
+        <button
+          aria-label="Toggle Menu"
+          className="inline-flex items-center justify-center rounded-md p-2 text-gray-700 hover:bg-gray-100 md:hidden"
+          onClick={() => setOpen(v => !v)}
+        >
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </nav>
+
+      {/* Mobile sheet */}
+      {open && (
+        <div className="border-t bg-white md:hidden">
+          <div className="mx-auto flex max-w-7xl flex-col gap-3 px-4 py-3">
+            <NavLink href="/">Home</NavLink>
+            <NavLink href="/about">About</NavLink>
+            <NavLink href="/pricing">Pricing</NavLink>
+            <NavLink href="/contact">Contact</NavLink>
+            <NavLink href="/interviews">Interviews</NavLink>
+            <NavLink href="/dashboard">Dashboard</NavLink>
+
+            <div className="mt-2 flex items-center justify-between">
               {isSignedIn ? (
                 <>
-                  <Link href="/interviews" className="text-gray-600 hover:text-gray-900">
-                    Interviews
-                  </Link>
-                  <Link href="/dashboard" className="text-gray-600 hover:text-gray-900">
-                    Dashboard
-                  </Link>
-                  <div className="pt-4 border-t">
+                  <span className="text-sm text-gray-700">
+                    {user?.firstName ?? user?.username ?? 'User'}
+                  </span>
+                  <div className="flex items-center gap-2">
                     <SignOutButton>
-                      <Button variant="outline" className="w-full">
+                      <Button size="sm" variant="outline" className="gap-2">
+                        <LogOut className="h-4 w-4" />
                         Sign Out
                       </Button>
                     </SignOutButton>
+                    <UserButton />
                   </div>
                 </>
               ) : (
-                <div className="flex flex-col space-y-2 pt-4 border-t">
-                  <SignInButton mode="modal">
-                    <Button variant="outline" className="w-full">Sign In</Button>
-                  </SignInButton>
-                  <SignInButton mode="modal">
-                    <Button className="w-full">Get Started</Button>
-                  </SignInButton>
-                </div>
+                <SignInButton mode="modal">
+                  <Button className="w-full" variant="outline">Sign In</Button>
+                </SignInButton>
               )}
             </div>
           </div>
-        )}
-      </div>
-    </nav>
+        </div>
+      )}
+    </header>
   )
 }
