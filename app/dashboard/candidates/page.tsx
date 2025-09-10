@@ -5,7 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Search, Filter, Eye, MessageSquare, Star } from 'lucide-react'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Users, Search, Filter, Eye, MessageSquare, Star, MapPin, Calendar, Briefcase } from 'lucide-react'
+import Link from 'next/link'
+import { DashboardLayout } from '@/components/dashboard-layout'
 
 interface Candidate {
   id: string
@@ -25,40 +28,23 @@ export default function CandidatesPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock data for now
-    setCandidates([
-      {
-        id: '1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        skills: ['React', 'JavaScript', 'Node.js'],
-        experience: '3 years',
-        lastInterview: '2024-01-15',
-        averageScore: 85,
-        status: 'active'
-      },
-      {
-        id: '2',
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        skills: ['Python', 'Django', 'PostgreSQL'],
-        experience: '5 years',
-        lastInterview: '2024-01-10',
-        averageScore: 92,
-        status: 'hired'
-      },
-      {
-        id: '3',
-        name: 'Mike Johnson',
-        email: 'mike@example.com',
-        skills: ['Vue.js', 'TypeScript', 'AWS'],
-        experience: '2 years',
-        lastInterview: '2024-01-08',
-        averageScore: 78,
-        status: 'pending'
+    const fetchCandidates = async () => {
+      try {
+        const response = await fetch('/api/candidates')
+        if (response.ok) {
+          const data = await response.json()
+          setCandidates(data.candidates || [])
+        } else {
+          console.error('Failed to fetch candidates')
+        }
+      } catch (error) {
+        console.error('Error fetching candidates:', error)
+      } finally {
+        setLoading(false)
       }
-    ])
-    setLoading(false)
+    }
+
+    fetchCandidates()
   }, [])
 
   const filteredCandidates = candidates.filter(candidate => {
@@ -87,17 +73,16 @@ export default function CandidatesPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Candidates</h1>
+    <DashboardLayout>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">Candidates</h1>
           <p className="text-gray-600">
             Manage and review candidate profiles and interview results
           </p>
         </div>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white/80 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -144,7 +129,7 @@ export default function CandidatesPage() {
         {/* Candidates List */}
         <div className="grid gap-4">
           {loading ? (
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="p-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-2 text-gray-600">Loading candidates...</p>
@@ -152,7 +137,7 @@ export default function CandidatesPage() {
             </Card>
           ) : filteredCandidates.length > 0 ? (
             filteredCandidates.map((candidate) => (
-              <Card key={candidate.id} className="hover:shadow-md transition-shadow">
+              <Card key={candidate.id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
@@ -205,7 +190,7 @@ export default function CandidatesPage() {
               </Card>
             ))
           ) : (
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="p-8 text-center">
                 <div className="text-gray-400 mb-4">
                   <Search className="h-12 w-12 mx-auto" />
@@ -221,13 +206,13 @@ export default function CandidatesPage() {
 
         {/* Stats Summary */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-gray-900">{candidates.length}</div>
               <div className="text-sm text-gray-600">Total Candidates</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {candidates.filter(c => c.status === 'active').length}
@@ -235,7 +220,7 @@ export default function CandidatesPage() {
               <div className="text-sm text-gray-600">Active</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-green-600">
                 {candidates.filter(c => c.status === 'hired').length}
@@ -243,7 +228,7 @@ export default function CandidatesPage() {
               <div className="text-sm text-gray-600">Hired</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-purple-600">
                 {candidates.length > 0 ? Math.round(candidates.reduce((sum, c) => sum + c.averageScore, 0) / candidates.length) : 0}%
@@ -251,8 +236,7 @@ export default function CandidatesPage() {
               <div className="text-sm text-gray-600">Avg Score</div>
             </CardContent>
           </Card>
-        </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

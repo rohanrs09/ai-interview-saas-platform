@@ -3,11 +3,16 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Search, Play, Clock, Award, Users, MapPin, Briefcase } from 'lucide-react'
-import { useUser } from '@clerk/nextjs'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Brain, Clock, Target, Play, Search, Filter, Plus, Briefcase } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useUser } from '@clerk/nextjs'
+import { DashboardLayout } from '@/components/dashboard-layout'
 
 interface Job {
   id: string
@@ -34,143 +39,233 @@ interface InterviewSession {
 }
 
 export default function InterviewsPage() {
+  const router = useRouter()
   const { user } = useUser()
-  const [jobs, setJobs] = useState<Job[]>([])
-  const [sessions, setSessions] = useState<InterviewSession[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterDifficulty, setFilterDifficulty] = useState<string>('all')
+  const [interviews, setInterviews] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    // Mock data for now
-    setJobs([
-      {
-        id: '1',
-        title: 'Senior Frontend Developer',
-        company: 'Tech Corp',
-        location: 'San Francisco, CA',
-        type: 'full-time',
-        experience: '5+ years',
-        skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
-        description: 'We are looking for a senior frontend developer with strong React and TypeScript experience...',
-        difficulty: 'advanced',
-        estimatedTime: 45,
-        questionsCount: 8
-      },
-      {
-        id: '2',
-        title: 'Full Stack Engineer',
-        company: 'StartupXYZ',
-        location: 'Remote',
-        type: 'full-time',
-        experience: '3+ years',
-        skills: ['Python', 'Django', 'React', 'PostgreSQL'],
-        description: 'Join our growing team as a full stack engineer working on exciting projects...',
-        difficulty: 'intermediate',
-        estimatedTime: 30,
-        questionsCount: 6
-      },
-      {
-        id: '3',
-        title: 'Junior React Developer',
-        company: 'WebDev Inc',
-        location: 'New York, NY',
-        type: 'full-time',
-        experience: '1+ years',
-        skills: ['React', 'JavaScript', 'CSS', 'HTML'],
-        description: 'Perfect opportunity for a junior developer to grow their React skills...',
-        difficulty: 'beginner',
-        estimatedTime: 20,
-        questionsCount: 4
-      },
-      {
-        id: '4',
-        title: 'DevOps Engineer',
-        company: 'CloudTech',
-        location: 'Austin, TX',
-        type: 'contract',
-        experience: '4+ years',
-        skills: ['AWS', 'Docker', 'Kubernetes', 'Terraform'],
-        description: 'Looking for an experienced DevOps engineer to manage our cloud infrastructure...',
-        difficulty: 'advanced',
-        estimatedTime: 50,
-        questionsCount: 10
-      }
-    ])
-
-    setSessions([
-      {
-        id: '1',
-        jobId: '1',
-        jobTitle: 'Senior Frontend Developer',
-        status: 'completed',
-        score: 85,
-        completedAt: '2024-01-15',
-        createdAt: '2024-01-15'
-      },
-      {
-        id: '2',
-        jobId: '2',
-        jobTitle: 'Full Stack Engineer',
-        status: 'in-progress',
-        createdAt: '2024-01-16'
-      }
-    ])
-
-    setLoading(false)
-  }, [])
-
-  const filteredJobs = jobs.filter(job => {
-    const matchesSearch = job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         job.skills.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase()))
-    
-    const matchesDifficulty = filterDifficulty === 'all' || job.difficulty === filterDifficulty
-    
-    return matchesSearch && matchesDifficulty
+  const [searchTerm, setSearchTerm] = useState('')
+  const [difficultyFilter, setDifficultyFilter] = useState('all')
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
+  const [formData, setFormData] = useState({
+    jobTitle: '',
+    jobDescription: '',
+    companyName: '',
+    experience: 'entry',
+    difficulty: 'medium',
+    duration: '30'
   })
 
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'beginner': return 'bg-green-100 text-green-800'
-      case 'intermediate': return 'bg-yellow-100 text-yellow-800'
-      case 'advanced': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
+  useEffect(() => {
+    const fetchInterviews = async () => {
+      try {
+        const response = await fetch('/api/interviews')
+        if (response.ok) {
+          const data = await response.json()
+          setInterviews(data.interviews || [])
+        } else {
+          // Use mock data if API fails
+          setInterviews([
+            {
+              id: '1',
+              title: 'Frontend Developer',
+              company: 'Tech Corp',
+              difficulty: 'medium',
+              duration: 30,
+              questions: 10,
+              status: 'available'
+            },
+            {
+              id: '2',
+              title: 'Backend Engineer',
+              company: 'StartupXYZ',
+              difficulty: 'hard',
+              duration: 45,
+              questions: 15,
+              status: 'available'
+            },
+            {
+              id: '3',
+              title: 'Full Stack Developer',
+              company: 'Innovation Labs',
+              difficulty: 'medium',
+              duration: 40,
+              questions: 12,
+              status: 'completed'
+            }
+          ])
+        }
+      } catch (error) {
+        console.error('Error fetching interviews:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchInterviews()
+  }, [])
+
+  const handleCreateInterview = async () => {
+    try {
+      const response = await fetch('/api/interviews/create-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobTitle: formData.jobTitle,
+          jobDescription: formData.jobDescription,
+          companyName: formData.companyName,
+          experience: formData.experience,
+          difficulty: formData.difficulty,
+          duration: parseInt(formData.duration)
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        router.push(`/interviews/${data.sessionId}`)
+      } else {
+        console.error('Failed to create interview session')
+      }
+    } catch (error) {
+      console.error('Error creating interview:', error)
     }
   }
 
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'full-time': return 'bg-blue-100 text-blue-800'
-      case 'part-time': return 'bg-purple-100 text-purple-800'
-      case 'contract': return 'bg-orange-100 text-orange-800'
-      default: return 'bg-gray-100 text-gray-800'
+  const startInterview = async (interviewId: string) => {
+    try {
+      const response = await fetch('/api/interviews/create-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          jobId: interviewId,
+          jobTitle: interviews.find(i => i.id === interviewId)?.title || 'General Interview',
+          difficulty: interviews.find(i => i.id === interviewId)?.difficulty || 'medium'
+        })
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        router.push(`/interviews/${data.sessionId}`)
+      } else {
+        // Fallback to direct navigation
+        router.push(`/interviews/${interviewId}`)
+      }
+    } catch (error) {
+      console.error('Error starting interview:', error)
+      router.push(`/interviews/${interviewId}`)
     }
-  }
-
-  const getSessionStatus = (jobId: string) => {
-    const session = sessions.find(s => s.jobId === jobId)
-    if (!session) return 'not-started'
-    return session.status
-  }
-
-  const getSessionScore = (jobId: string) => {
-    const session = sessions.find(s => s.jobId === jobId)
-    return session?.score
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Mock Interviews</h1>
-          <p className="text-gray-600">
-            Practice with AI-generated interview questions tailored to specific job positions
-          </p>
+    <DashboardLayout>
+      <div className="mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Mock Interviews</h1>
+            <p className="text-gray-600">
+              Practice with AI-powered interviews tailored to your skills
+            </p>
+          </div>
+          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700">
+                <Plus className="h-4 w-4 mr-2" />
+                Create Custom Interview
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Create Custom Interview</DialogTitle>
+                <DialogDescription>
+                  Set up a personalized mock interview based on your target job
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 mt-4">
+                <div>
+                  <label className="text-sm font-medium">Job Title</label>
+                  <Input
+                    value={formData.jobTitle}
+                    onChange={(e) => setFormData(prev => ({ ...prev, jobTitle: e.target.value }))}
+                    placeholder="e.g. Senior Frontend Developer"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Company Name</label>
+                  <Input
+                    value={formData.companyName}
+                    onChange={(e) => setFormData(prev => ({ ...prev, companyName: e.target.value }))}
+                    placeholder="e.g. Tech Corp"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium">Job Description</label>
+                  <Textarea
+                    value={formData.jobDescription}
+                    onChange={(e) => setFormData(prev => ({ ...prev, jobDescription: e.target.value }))}
+                    placeholder="Paste the job description here..."
+                    rows={4}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="text-sm font-medium">Experience Level</label>
+                    <Select value={formData.experience} onValueChange={(value) => setFormData(prev => ({ ...prev, experience: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="entry">Entry Level</SelectItem>
+                        <SelectItem value="mid">Mid Level</SelectItem>
+                        <SelectItem value="senior">Senior Level</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Difficulty</label>
+                    <Select value={formData.difficulty} onValueChange={(value) => setFormData(prev => ({ ...prev, difficulty: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Easy</SelectItem>
+                        <SelectItem value="medium">Medium</SelectItem>
+                        <SelectItem value="hard">Hard</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium">Duration (min)</label>
+                    <Select value={formData.duration} onValueChange={(value) => setFormData(prev => ({ ...prev, duration: value }))}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="15">15 minutes</SelectItem>
+                        <SelectItem value="30">30 minutes</SelectItem>
+                        <SelectItem value="45">45 minutes</SelectItem>
+                        <SelectItem value="60">60 minutes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+                  <Button onClick={handleCreateInterview} disabled={!formData.jobTitle}>
+                    Start Interview
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
+      </div>
 
-        {/* Search and Filters */}
-        <Card className="mb-6">
+      {/* Search and Filter */}
+      <div className="mb-6">
+        <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -186,26 +281,26 @@ export default function InterviewsPage() {
               </div>
               <div className="flex gap-2">
                 <Button
-                  variant={filterDifficulty === 'all' ? 'default' : 'outline'}
-                  onClick={() => setFilterDifficulty('all')}
+                  variant={difficultyFilter === 'all' ? 'default' : 'outline'}
+                  onClick={() => setDifficultyFilter('all')}
                 >
                   All Levels
                 </Button>
                 <Button
-                  variant={filterDifficulty === 'beginner' ? 'default' : 'outline'}
-                  onClick={() => setFilterDifficulty('beginner')}
+                  variant={difficultyFilter === 'beginner' ? 'default' : 'outline'}
+                  onClick={() => setDifficultyFilter('beginner')}
                 >
                   Beginner
                 </Button>
                 <Button
-                  variant={filterDifficulty === 'intermediate' ? 'default' : 'outline'}
-                  onClick={() => setFilterDifficulty('intermediate')}
+                  variant={difficultyFilter === 'intermediate' ? 'default' : 'outline'}
+                  onClick={() => setDifficultyFilter('intermediate')}
                 >
                   Intermediate
                 </Button>
                 <Button
-                  variant={filterDifficulty === 'advanced' ? 'default' : 'outline'}
-                  onClick={() => setFilterDifficulty('advanced')}
+                  variant={difficultyFilter === 'advanced' ? 'default' : 'outline'}
+                  onClick={() => setDifficultyFilter('advanced')}
                 >
                   Advanced
                 </Button>
@@ -213,178 +308,87 @@ export default function InterviewsPage() {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Jobs Grid */}
+      {/* Interviews Grid */}
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading interviews...</p>
+          </div>
+        </div>
+      ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {loading ? (
-            Array.from({ length: 6 }).map((_, index) => (
-              <Card key={index} className="animate-pulse">
-                <CardContent className="p-6">
-                  <div className="h-4 bg-gray-200 rounded mb-4"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-2"></div>
-                  <div className="h-3 bg-gray-200 rounded mb-4"></div>
-                  <div className="flex gap-2 mb-4">
-                    <div className="h-6 bg-gray-200 rounded w-16"></div>
-                    <div className="h-6 bg-gray-200 rounded w-20"></div>
-                  </div>
-                  <div className="h-10 bg-gray-200 rounded"></div>
-                </CardContent>
-              </Card>
-            ))
-          ) : filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => {
-              const sessionStatus = getSessionStatus(job.id)
-              const sessionScore = getSessionScore(job.id)
-              
-              return (
-                <Card key={job.id} className="hover:shadow-lg transition-shadow">
+          {interviews.length > 0 ? (
+            interviews
+              .filter(interview => {
+                const matchesSearch = interview.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                     interview.company?.toLowerCase().includes(searchTerm.toLowerCase())
+                const matchesDifficulty = difficultyFilter === 'all' || 
+                                         interview.difficulty === difficultyFilter ||
+                                         (difficultyFilter === 'beginner' && interview.difficulty === 'easy') ||
+                                         (difficultyFilter === 'intermediate' && interview.difficulty === 'medium') ||
+                                         (difficultyFilter === 'advanced' && interview.difficulty === 'hard')
+                return matchesSearch && matchesDifficulty
+              })
+              .map((interview) => (
+                <Card key={interview.id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
                   <CardHeader>
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex-1">
-                        <CardTitle className="text-lg mb-1">{job.title}</CardTitle>
-                        <CardDescription className="flex items-center text-sm text-gray-600">
-                          <Briefcase className="h-4 w-4 mr-1" />
-                          {job.company}
-                        </CardDescription>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <Badge className={getDifficultyColor(job.difficulty)}>
-                          {job.difficulty}
-                        </Badge>
-                        <Badge className={getTypeColor(job.type)}>
-                          {job.type}
-                        </Badge>
-                      </div>
+                    <div className="flex justify-between items-start mb-2">
+                      <CardTitle className="text-lg">{interview.title}</CardTitle>
+                      <Badge 
+                        className={
+                          interview.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                          interview.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                          'bg-red-100 text-red-800'
+                        }
+                      >
+                        {interview.difficulty}
+                      </Badge>
                     </div>
-                    
-                    <div className="flex items-center text-sm text-gray-600 mb-2">
-                      <MapPin className="h-4 w-4 mr-1" />
-                      {job.location}
-                    </div>
-                    
-                    <div className="flex items-center text-sm text-gray-600 mb-3">
-                      <Users className="h-4 w-4 mr-1" />
-                      {job.experience}
-                    </div>
-
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-3">
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" />
-                        {job.estimatedTime} min
-                      </div>
-                      <div className="flex items-center">
-                        <Award className="h-4 w-4 mr-1" />
-                        {job.questionsCount} questions
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-1 mb-4">
-                      {job.skills.slice(0, 3).map((skill, index) => (
-                        <span
-                          key={index}
-                          className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs"
-                        >
-                          {skill}
-                        </span>
-                      ))}
-                      {job.skills.length > 3 && (
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs">
-                          +{job.skills.length - 3} more
-                        </span>
-                      )}
-                    </div>
+                    <CardDescription>{interview.company}</CardDescription>
                   </CardHeader>
-                  
                   <CardContent>
-                    <p className="text-sm text-gray-700 mb-4 line-clamp-2">
-                      {job.description}
-                    </p>
-                    
-                    {sessionStatus === 'completed' && sessionScore && (
-                      <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-green-800">Completed</span>
-                          <span className="text-lg font-bold text-green-600">{sessionScore}%</span>
-                        </div>
-                        <p className="text-xs text-green-600 mt-1">
-                          Great job! You can retake this interview anytime.
-                        </p>
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Clock className="h-4 w-4" />
+                        <span>{interview.duration} minutes</span>
                       </div>
-                    )}
-                    
-                    {sessionStatus === 'in-progress' && (
-                      <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 text-yellow-600 mr-2" />
-                          <span className="text-sm font-medium text-yellow-800">In Progress</span>
-                        </div>
-                        <p className="text-xs text-yellow-600 mt-1">
-                          Continue where you left off.
-                        </p>
+                      <div className="flex items-center gap-2 text-sm text-gray-600">
+                        <Target className="h-4 w-4" />
+                        <span>{interview.questions} questions</span>
                       </div>
-                    )}
-                    
-                    <Link href={`/interviews/${job.id}`}>
-                      <Button className="w-full">
-                        {sessionStatus === 'completed' ? 'Retake Interview' : 
-                         sessionStatus === 'in-progress' ? 'Continue Interview' : 'Start Interview'}
+                      {interview.status === 'completed' && (
+                        <Badge className="bg-green-100 text-green-800">Completed</Badge>
+                      )}
+                      <Button 
+                        className="w-full mt-4"
+                        onClick={() => startInterview(interview.id)}
+                        disabled={interview.status === 'completed'}
+                      >
+                        <Play className="h-4 w-4 mr-2" />
+                        {interview.status === 'completed' ? 'Review' : 'Start Interview'}
                       </Button>
-                    </Link>
+                    </div>
                   </CardContent>
                 </Card>
-              )
-            })
+              ))
           ) : (
-            <div className="col-span-full">
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <div className="text-gray-400 mb-4">
-                    <Search className="h-12 w-12 mx-auto" />
-                  </div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No jobs found</h3>
-                  <p className="text-gray-600">
-                    {searchTerm ? 'Try adjusting your search criteria' : 'No job postings available at the moment'}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <Card className="col-span-full bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="p-12 text-center">
+                <Brain className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No interviews found</h3>
+                <p className="text-gray-600 mb-4">Try adjusting your filters or create a custom interview</p>
+                <Button onClick={() => setIsCreateDialogOpen(true)} className="bg-gradient-to-r from-indigo-600 to-purple-600">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Interview
+                </Button>
+              </CardContent>
+            </Card>
           )}
         </div>
-
-        {/* Stats Summary */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-gray-900">{jobs.length}</div>
-              <div className="text-sm text-gray-600">Available Jobs</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-blue-600">
-                {sessions.filter(s => s.status === 'completed').length}
-              </div>
-              <div className="text-sm text-gray-600">Completed</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-yellow-600">
-                {sessions.filter(s => s.status === 'in-progress').length}
-              </div>
-              <div className="text-sm text-gray-600">In Progress</div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 text-center">
-              <div className="text-2xl font-bold text-green-600">
-                {sessions.length > 0 ? Math.round(sessions.reduce((sum, s) => sum + (s.score || 0), 0) / sessions.filter(s => s.score).length) : 0}%
-              </div>
-              <div className="text-sm text-gray-600">Avg Score</div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    </div>
+      )}
+    </DashboardLayout>
   )
 }

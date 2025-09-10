@@ -1,453 +1,502 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { Progress } from '@/components/ui/progress'
-import { InterviewInterface } from '@/components/interview-interface'
-import { ArrowLeft, Clock, Award, Brain, Mic, Camera, AlertTriangle } from 'lucide-react'
-import Link from 'next/link'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Mic, 
+  MicOff, 
+  Video, 
+  VideoOff, 
+  Clock, 
+  ChevronRight,
+  ChevronLeft,
+  AlertCircle,
+  CheckCircle,
+  Play,
+  Pause,
+  StopCircle,
+  Send,
+  Loader2
+} from 'lucide-react'
+import { useUser } from '@clerk/nextjs'
+import { DashboardLayout } from '@/components/dashboard-layout'
 
 interface Question {
   id: string
-  text: string
-  type: 'technical' | 'behavioral' | 'situational'
-  difficulty: 'easy' | 'medium' | 'hard'
-  timeLimit?: number
+  questionText: string
+  type: 'behavioral' | 'technical' | 'situational'
+  difficulty: 'beginner' | 'intermediate' | 'advanced'
+  timeLimit: number
+  order: number
 }
 
-interface Job {
+interface SessionData {
   id: string
-  title: string
+  jobTitle: string
   company: string
-  location: string
-  skills: string[]
-  difficulty: 'beginner' | 'intermediate' | 'advanced'
-  estimatedTime: number
+  status: string
+  totalQuestions: number
+  currentQuestion: number
+  questions: Question[]
 }
 
 export default function InterviewSessionPage() {
   const params = useParams()
   const router = useRouter()
-  const jobId = params.id as string
+  const { user } = useUser()
+  const sessionId = params.id as string
 
-  const [job, setJob] = useState<Job | null>(null)
-  const [questions, setQuestions] = useState<Question[]>([])
-  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(true)
+  const [sessionData, setSessionData] = useState<SessionData | null>(null)
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+  const [currentAnswer, setCurrentAnswer] = useState('')
+  const [answers, setAnswers] = useState<Record<string, string>>({})
+  const [timeRemaining, setTimeRemaining] = useState(300) // 5 minutes default
   const [isRecording, setIsRecording] = useState(false)
-  const [isVideoOn, setIsVideoOn] = useState(true)
-  const [showProctoring, setShowProctoring] = useState(false)
-  const [anomalies, setAnomalies] = useState<Array<{ type: string; severity: string; timestamp: Date }>>([])
-  const [loading, setLoading] = useState(true)
+  const [isVideoEnabled, setIsVideoEnabled] = useState(false)
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false)
+  const [isPaused, setIsPaused] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const [sessionStarted, setSessionStarted] = useState(false)
-  const [timeRemaining, setTimeRemaining] = useState(0)
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const timerRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    // Mock data for now
-    const mockJob: Job = {
-      id: jobId,
-      title: 'Senior Frontend Developer',
-      company: 'Tech Corp',
-      location: 'San Francisco, CA',
-      skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
-      difficulty: 'advanced',
-      estimatedTime: 45
+    const fetchSessionData = async () => {
+      try {
+        const response = await fetch(`/api/interviews/${sessionId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setSessionData({
+            id: data.session.id,
+            jobTitle: data.job?.title || 'Interview',
+            company: data.job?.company || 'Company',
+            status: data.session.status,
+            totalQuestions: data.questions.length,
+            currentQuestion: 1,
+            questions: data.questions
+          })
+          if (data.questions.length > 0) {
+            setTimeRemaining(data.questions[0].timeLimit || 300)
+          }
+        } else {
+          // Use mock data if API fails
+          setSessionData({
+            id: sessionId,
+            jobTitle: 'Frontend Developer',
+            company: 'Tech Corp',
+            status: 'pending',
+            totalQuestions: 5,
+            currentQuestion: 1,
+            questions: [
+              {
+                id: '1',
+                questionText: 'Tell me about yourself and your experience.',
+                type: 'behavioral',
+                difficulty: 'beginner',
+                timeLimit: 180,
+                order: 1
+              },
+              {
+                id: '2',
+                questionText: 'What are your greatest strengths?',
+                type: 'behavioral',
+                difficulty: 'beginner',
+                timeLimit: 120,
+                order: 2
+              },
+              {
+                id: '3',
+                questionText: 'Describe a challenging technical problem you solved.',
+                type: 'technical',
+                difficulty: 'intermediate',
+                timeLimit: 240,
+                order: 3
+              },
+              {
+                id: '4',
+                questionText: 'How do you stay updated with technology?',
+                type: 'behavioral',
+                difficulty: 'beginner',
+                timeLimit: 120,
+                order: 4
+              },
+              {
+                id: '5',
+                questionText: 'Where do you see yourself in 5 years?',
+                type: 'behavioral',
+                difficulty: 'beginner',
+                timeLimit: 120,
+                order: 5
+              }
+            ]
+          })
+          setTimeRemaining(180)
+        }
+      } catch (error) {
+        console.error('Error fetching session:', error)
+      } finally {
+        setIsLoading(false)
+      }
     }
 
-    const mockQuestions: Question[] = [
-      {
-        id: '1',
-        text: 'Explain the difference between React functional components and class components. What are the advantages of using hooks?',
-        type: 'technical',
-        difficulty: 'medium',
-        timeLimit: 5
-      },
-      {
-        id: '2',
-        text: 'How would you optimize the performance of a React application that has thousands of components rendering large lists?',
-        type: 'technical',
-        difficulty: 'hard',
-        timeLimit: 7
-      },
-      {
-        id: '3',
-        text: 'Describe a time when you had to work with a difficult team member. How did you handle the situation?',
-        type: 'behavioral',
-        difficulty: 'medium',
-        timeLimit: 4
-      },
-      {
-        id: '4',
-        text: 'You discover a critical bug in production that affects user data. Walk me through your debugging process and how you would handle this situation.',
-        type: 'situational',
-        difficulty: 'hard',
-        timeLimit: 6
-      },
-      {
-        id: '5',
-        text: 'How do you handle state management in large React applications? Compare different approaches like Redux, Context API, and Zustand.',
-        type: 'technical',
-        difficulty: 'hard',
-        timeLimit: 8
-      }
-    ]
+    fetchSessionData()
+  }, [sessionId])
 
-    setJob(mockJob)
-    setQuestions(mockQuestions)
-    setTimeRemaining(mockJob.estimatedTime * 60) // Convert to seconds
-    setLoading(false)
-  }, [jobId])
-
+  // Timer effect
   useEffect(() => {
-    let interval: NodeJS.Timeout
-    if (sessionStarted && timeRemaining > 0) {
-      interval = setInterval(() => {
+    if (sessionStarted && !isPaused && timeRemaining > 0) {
+      timerRef.current = setInterval(() => {
         setTimeRemaining(prev => {
           if (prev <= 1) {
-            handleCompleteInterview()
+            handleNextQuestion()
             return 0
           }
           return prev - 1
         })
       }, 1000)
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
     }
-    return () => clearInterval(interval)
-  }, [sessionStarted, timeRemaining])
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60)
-    const secs = seconds % 60
-    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-  }
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current)
+      }
+    }
+  }, [sessionStarted, isPaused, timeRemaining])
 
-  const handleStartInterview = () => {
+  const startSession = async () => {
     setSessionStarted(true)
+    // Update session status to in_progress
+    try {
+      await fetch(`/api/interviews/${sessionId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'in_progress' })
+      })
+    } catch (error) {
+      console.error('Error starting session:', error)
+    }
   }
 
-  const handleAnswerSubmit = (questionId: string, answer: string) => {
-    setAnswers(prev => ({ ...prev, [questionId]: answer }))
-  }
+  const handleAnswerSubmit = async () => {
+    if (!currentAnswer.trim()) return
 
-  const handleCompleteInterview = async () => {
-    // Calculate score based on answers
-    const totalQuestions = questions.length
-    const answeredQuestions = Object.keys(answers).length
-    const score = Math.round((answeredQuestions / totalQuestions) * 100)
+    setIsSubmitting(true)
+    const currentQuestion = sessionData?.questions[currentQuestionIndex]
     
-    // In a real app, you'd send this to your API
-    console.log('Interview completed with score:', score)
-    
-    // Redirect to results page
-    router.push(`/interviews/${jobId}/results?score=${score}`)
+    if (currentQuestion) {
+      // Save answer
+      const newAnswers = { ...answers, [currentQuestion.id]: currentAnswer }
+      setAnswers(newAnswers)
+
+      // Submit answer to API
+      try {
+        await fetch(`/api/interviews/${sessionId}/answer`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            questionId: currentQuestion.id,
+            answer: currentAnswer,
+            timeSpent: currentQuestion.timeLimit - timeRemaining
+          })
+        })
+      } catch (error) {
+        console.error('Error submitting answer:', error)
+      }
+    }
+
+    setIsSubmitting(false)
+    setCurrentAnswer('')
+    handleNextQuestion()
   }
 
   const handleNextQuestion = () => {
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1)
+    if (!sessionData) return
+    
+    if (currentQuestionIndex < sessionData.questions.length - 1) {
+      const nextIndex = currentQuestionIndex + 1
+      setCurrentQuestionIndex(nextIndex)
+      setTimeRemaining(sessionData.questions[nextIndex].timeLimit || 300)
     } else {
-      handleCompleteInterview()
+      completeInterview()
     }
   }
 
   const handlePreviousQuestion = () => {
     if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1)
+      const prevIndex = currentQuestionIndex - 1
+      setCurrentQuestionIndex(prevIndex)
+      const prevAnswer = sessionData?.questions[prevIndex].id
+      if (prevAnswer && answers[prevAnswer]) {
+        setCurrentAnswer(answers[prevAnswer])
+      }
     }
   }
 
-  const toggleRecording = () => {
-    setIsRecording(!isRecording)
-    // TODO: Implement actual voice recording
+  const completeInterview = async () => {
+    setIsSubmitting(true)
+    try {
+      await fetch(`/api/interviews/${sessionId}/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers })
+      })
+      router.push(`/interviews/${sessionId}/results`)
+    } catch (error) {
+      console.error('Error completing interview:', error)
+      router.push(`/interviews/${sessionId}/results`)
+    }
   }
 
-  const toggleVideo = () => {
-    setIsVideoOn(!isVideoOn)
-    // TODO: Implement video toggle
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  const handleAnomaly = (type: string, severity: 'low' | 'medium' | 'high') => {
-    setAnomalies(prev => [...prev, { type, severity, timestamp: new Date() }])
-  }
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading interview...</p>
-        </div>
-      </div>
-    )
-  }
-
-  if (!job || !questions.length) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Interview not found</h2>
-          <p className="text-gray-600 mb-4">The interview you're looking for doesn't exist.</p>
-          <Link href="/interviews">
-            <Button>Back to Interviews</Button>
-          </Link>
-        </div>
-      </div>
-    )
-  }
-
-  if (!sessionStarted) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="max-w-4xl mx-auto">
-          <div className="mb-6">
-            <Link href="/interviews" className="inline-flex items-center text-blue-600 hover:text-blue-800 mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Interviews
-            </Link>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="h-8 w-8 animate-spin text-indigo-600 mx-auto" />
+            <p className="mt-2 text-gray-600">Loading interview session...</p>
           </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
 
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-2xl">{job.title}</CardTitle>
-              <CardDescription className="text-lg">
-                {job.company} • {job.location}
+  if (!sessionData) {
+    return (
+      <DashboardLayout>
+        <div className="text-center py-12">
+          <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Session Not Found</h2>
+          <p className="text-gray-600 mb-4">Unable to load interview session</p>
+          <Button onClick={() => router.push('/interviews')}>Back to Interviews</Button>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  const currentQuestion = sessionData.questions[currentQuestionIndex]
+
+  return (
+    <DashboardLayout>
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{sessionData.jobTitle}</h1>
+              <p className="text-gray-600">{sessionData.company}</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Badge variant="outline" className="px-3 py-1">
+                Question {currentQuestionIndex + 1} of {sessionData.totalQuestions}
+              </Badge>
+              <div className="flex items-center gap-2 text-lg font-medium">
+                <Clock className="h-5 w-5" />
+                <span className={timeRemaining < 60 ? 'text-red-600' : 'text-gray-700'}>
+                  {formatTime(timeRemaining)}
+                </span>
+              </div>
+            </div>
+          </div>
+          <Progress 
+            value={((currentQuestionIndex + 1) / sessionData.totalQuestions) * 100} 
+            className="mt-4 h-2"
+          />
+        </div>
+
+        {!sessionStarted ? (
+          // Pre-interview screen
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+            <CardHeader className="text-center">
+              <CardTitle className="text-2xl">Ready to Start Your Interview?</CardTitle>
+              <CardDescription className="mt-2">
+                You'll have {sessionData.totalQuestions} questions to answer.
+                Each question has a time limit. Make sure you're in a quiet environment.
               </CardDescription>
             </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2 mb-4">
-                {job.skills.map((skill, index) => (
-                  <Badge key={index} variant="outline">
-                    {skill}
-                  </Badge>
-                ))}
+            <CardContent className="space-y-6">
+              <div className="grid md:grid-cols-3 gap-4">
+                <Card className="bg-gradient-to-br from-blue-50 to-indigo-50">
+                  <CardContent className="p-4 text-center">
+                    <Clock className="h-8 w-8 text-indigo-600 mx-auto mb-2" />
+                    <p className="font-medium">Timed Questions</p>
+                    <p className="text-sm text-gray-600">Each question has a time limit</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-green-50 to-emerald-50">
+                  <CardContent className="p-4 text-center">
+                    <Mic className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                    <p className="font-medium">Audio Optional</p>
+                    <p className="text-sm text-gray-600">Answer via text or voice</p>
+                  </CardContent>
+                </Card>
+                <Card className="bg-gradient-to-br from-purple-50 to-pink-50">
+                  <CardContent className="p-4 text-center">
+                    <Video className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                    <p className="font-medium">Video Optional</p>
+                    <p className="text-sm text-gray-600">Enable for realistic practice</p>
+                  </CardContent>
+                </Card>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-600">
-                <div className="flex items-center">
-                  <Clock className="h-4 w-4 mr-1" />
-                  {job.estimatedTime} minutes
-                </div>
-                <div className="flex items-center">
-                  <Award className="h-4 w-4 mr-1" />
-                  {questions.length} questions
-                </div>
-                <Badge className={job.difficulty === 'beginner' ? 'bg-green-100 text-green-800' : 
-                                 job.difficulty === 'intermediate' ? 'bg-yellow-100 text-yellow-800' : 
-                                 'bg-red-100 text-red-800'}>
-                  {job.difficulty}
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <Brain className="h-5 w-5 mr-2" />
-                Interview Instructions
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <h3 className="font-medium text-blue-900 mb-2">Before you start:</h3>
-                <ul className="text-sm text-blue-800 space-y-1">
-                  <li>• Ensure you have a stable internet connection</li>
-                  <li>• Find a quiet environment with good lighting</li>
-                  <li>• Have your camera and microphone ready</li>
-                  <li>• Close unnecessary applications and browser tabs</li>
-                </ul>
-              </div>
-
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <h3 className="font-medium text-yellow-900 mb-2">During the interview:</h3>
-                <ul className="text-sm text-yellow-800 space-y-1">
-                  <li>• Answer each question thoughtfully and completely</li>
-                  <li>• You can use voice recording or type your answers</li>
-                  <li>• Take your time - there's no rush</li>
-                  <li>• Be honest about your experience and knowledge</li>
-                </ul>
-              </div>
-
-              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                <h3 className="font-medium text-red-900 mb-2">Important:</h3>
-                <ul className="text-sm text-red-800 space-y-1">
-                  <li>• The interview is proctored - no external help allowed</li>
-                  <li>• Stay in frame and maintain eye contact with the camera</li>
-                  <li>• Any suspicious activity will be flagged</li>
-                </ul>
-              </div>
-
-              <div className="flex justify-center pt-4">
-                <Button size="lg" onClick={handleStartInterview} className="px-8">
+              <div className="text-center">
+                <Button 
+                  size="lg" 
+                  onClick={startSession}
+                  className="bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                >
+                  <Play className="h-5 w-5 mr-2" />
                   Start Interview
                 </Button>
               </div>
             </CardContent>
           </Card>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-4">
-            <Link href="/interviews" className="text-blue-600 hover:text-blue-800">
-              <ArrowLeft className="h-5 w-5" />
-            </Link>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">{job.title}</h1>
-              <p className="text-sm text-gray-600">{job.company}</p>
-            </div>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <div className="text-sm text-gray-600">Time Remaining</div>
-              <div className={`text-lg font-mono ${timeRemaining < 300 ? 'text-red-600' : 'text-gray-900'}`}>
-                {formatTime(timeRemaining)}
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2">
-              <Button
-                variant={isVideoOn ? "default" : "outline"}
-                size="sm"
-                onClick={toggleVideo}
-              >
-                <Camera className="h-4 w-4 mr-2" />
-                {isVideoOn ? 'Video On' : 'Video Off'}
-              </Button>
-              
-              <Button
-                variant={isRecording ? "default" : "outline"}
-                size="sm"
-                onClick={toggleRecording}
-              >
-                <Mic className="h-4 w-4 mr-2" />
-                {isRecording ? 'Recording' : 'Record'}
-              </Button>
-            </div>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Main Interview Area */}
-          <div className="lg:col-span-3">
-            <InterviewInterface
-              questions={questions}
-              onAnswerSubmit={handleAnswerSubmit}
-              onComplete={handleCompleteInterview}
-            />
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Progress */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Progress</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Questions</span>
-                    <span>{currentQuestionIndex + 1} / {questions.length}</span>
-                  </div>
-                  <Progress value={((currentQuestionIndex + 1) / questions.length) * 100} />
-                  
-                  <div className="flex justify-between text-sm">
-                    <span>Answered</span>
-                    <span>{Object.keys(answers).length} / {questions.length}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Question Navigation */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-sm">Questions</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {questions.map((question, index) => (
-                    <button
-                      key={question.id}
-                      onClick={() => setCurrentQuestionIndex(index)}
-                      className={`w-full text-left p-2 rounded text-sm ${
-                        index === currentQuestionIndex
-                          ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                          : answers[question.id]
-                          ? 'bg-green-100 text-green-900 border border-green-200'
-                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span>Question {index + 1}</span>
-                        <div className="flex items-center space-x-1">
-                          {answers[question.id] && (
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                          )}
-                          <Badge variant="outline" className="text-xs">
-                            {question.difficulty}
-                          </Badge>
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Proctoring Alerts */}
-            {anomalies.length > 0 && (
-              <Card>
+        ) : (
+          // Interview in progress
+          <div className="grid lg:grid-cols-3 gap-6">
+            {/* Main interview area */}
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
                 <CardHeader>
-                  <CardTitle className="text-sm flex items-center text-red-600">
-                    <AlertTriangle className="h-4 w-4 mr-2" />
-                    Proctoring Alerts
-                  </CardTitle>
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl mb-2">Question {currentQuestionIndex + 1}</CardTitle>
+                      <Badge className="mb-3" variant="outline">
+                        {currentQuestion.type} • {currentQuestion.difficulty}
+                      </Badge>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsPaused(!isPaused)}
+                    >
+                      {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                      {isPaused ? 'Resume' : 'Pause'}
+                    </Button>
+                  </div>
+                  <p className="text-lg font-medium mt-4">{currentQuestion.questionText}</p>
+                </CardHeader>
+                <CardContent>
+                  <Textarea
+                    value={currentAnswer}
+                    onChange={(e) => setCurrentAnswer(e.target.value)}
+                    placeholder="Type your answer here..."
+                    className="min-h-[200px] resize-none"
+                    disabled={isPaused}
+                  />
+                  <div className="flex justify-between mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handlePreviousQuestion}
+                      disabled={currentQuestionIndex === 0}
+                    >
+                      <ChevronLeft className="h-4 w-4 mr-2" />
+                      Previous
+                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        onClick={() => setCurrentAnswer('')}
+                        disabled={!currentAnswer || isPaused}
+                      >
+                        Clear
+                      </Button>
+                      <Button
+                        onClick={handleAnswerSubmit}
+                        disabled={!currentAnswer.trim() || isSubmitting || isPaused}
+                        className="bg-gradient-to-r from-indigo-600 to-purple-600"
+                      >
+                        {isSubmitting ? (
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : currentQuestionIndex === sessionData.totalQuestions - 1 ? (
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                        ) : (
+                          <Send className="h-4 w-4 mr-2" />
+                        )}
+                        {currentQuestionIndex === sessionData.totalQuestions - 1 ? 'Submit & Finish' : 'Submit & Next'}
+                      </Button>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Side panel */}
+            <div className="space-y-6">
+              {/* Media controls */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-lg">Interview Settings</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Video</span>
+                    <Button
+                      variant={isVideoEnabled ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIsVideoEnabled(!isVideoEnabled)}
+                    >
+                      {isVideoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium">Audio</span>
+                    <Button
+                      variant={isAudioEnabled ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setIsAudioEnabled(!isAudioEnabled)}
+                    >
+                      {isAudioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Progress overview */}
+              <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-lg">Progress</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-2">
-                    {anomalies.slice(-3).map((anomaly, index) => (
-                      <div key={index} className="text-xs text-red-600">
-                        {anomaly.type} - {anomaly.severity}
+                    {sessionData.questions.map((q, idx) => (
+                      <div
+                        key={q.id}
+                        className={`flex items-center justify-between p-2 rounded ${
+                          idx === currentQuestionIndex
+                            ? 'bg-indigo-100 border border-indigo-300'
+                            : answers[q.id]
+                            ? 'bg-green-50'
+                            : 'bg-gray-50'
+                        }`}
+                      >
+                        <span className="text-sm font-medium">Question {idx + 1}</span>
+                        {answers[q.id] && <CheckCircle className="h-4 w-4 text-green-600" />}
                       </div>
                     ))}
                   </div>
                 </CardContent>
               </Card>
-            )}
-
-            {/* Navigation */}
-            <div className="flex space-x-2">
-              <Button
-                variant="outline"
-                onClick={handlePreviousQuestion}
-                disabled={currentQuestionIndex === 0}
-                className="flex-1"
-              >
-                Previous
-              </Button>
-              <Button
-                onClick={handleNextQuestion}
-                className="flex-1"
-              >
-                {currentQuestionIndex === questions.length - 1 ? 'Finish' : 'Next'}
-              </Button>
             </div>
           </div>
-        </div>
+        )}
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

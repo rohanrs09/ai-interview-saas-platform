@@ -1,32 +1,32 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!)
 
 export const aiService = {
   async extractSkillsFromResume(resumeText: string): Promise<string[]> {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
     
     const prompt = `Extract technical skills, programming languages, frameworks, tools, and relevant technologies from this resume. Return only a JSON array of skills, no other text:
 
 Resume:
 ${resumeText}
 
-Example format: ["JavaScript", "React", "Node.js", "Python", "AWS", "Docker"]`;
+Example format: ["JavaScript", "React", "Node.js", "Python", "AWS", "Docker"]`
     
     try {
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text().trim();
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text().trim()
       
       // Clean up the response and parse JSON
-      const cleanText = text.replace(/```json|```/g, '').trim();
-      const skills = JSON.parse(cleanText);
+      const cleanText = text.replace(/```json|```/g, '').trim()
+      const skills = JSON.parse(cleanText)
       
-      return Array.isArray(skills) ? skills : [];
+      return Array.isArray(skills) ? skills : []
     } catch (error) {
-      console.error('Error extracting skills:', error);
+      console.error('Error extracting skills:', error)
       // Fallback: basic keyword extraction
-      return this.fallbackSkillExtraction(resumeText);
+      return this.fallbackSkillExtraction(resumeText)
     }
   },
 
@@ -36,237 +36,192 @@ Example format: ["JavaScript", "React", "Node.js", "Python", "AWS", "Docker"]`;
       'React', 'Vue', 'Angular', 'Next.js', 'Node.js', 'Express', 'Django', 'Flask', 'Spring',
       'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'Git', 'MongoDB', 'PostgreSQL',
       'MySQL', 'Redis', 'GraphQL', 'REST', 'API', 'Microservices', 'DevOps', 'CI/CD'
-    ];
+    ]
     
     const foundSkills = commonSkills.filter(skill => 
       resumeText.toLowerCase().includes(skill.toLowerCase())
-    );
-    difficulty: 'easy' | 'medium' | 'hard';
-    timeLimit?: number;
-  }>> {
-    const prompt = `
-    Generate 2-3 interview questions for each of the following skill gaps for a ${jobTitle} position.
-    Include a mix of technical, behavioral, and situational questions.
-    Return a JSON array of objects with the following structure:
-    {
-      "id": "unique_id",
-      "skill": "skill_name",
-      "question": "question_text",
-      "type": "technical|behavioral|situational",
-      "difficulty": "easy|medium|hard",
-      "timeLimit": 5
-    }
+    )
     
-    Skill gaps: ${skillGaps.join(', ')}
-    `;
+    return foundSkills.slice(0, 10) // Limit to 10 skills
+  },
 
+  async generateInterviewQuestions(
+    candidateSkills: string[], 
+    jobDescription: string, 
+    difficulty: 'beginner' | 'intermediate' | 'advanced' = 'intermediate',
+    count: number = 5
+  ) {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    
+    const prompt = `Generate ${count} ${difficulty} level interview questions for a candidate with these skills: ${candidateSkills.join(', ')}
+
+Job Description: ${jobDescription}
+
+Requirements:
+- Mix of technical and behavioral questions
+- Questions should test both knowledge and problem-solving
+- Include difficulty level and estimated time
+- Return as JSON array with this structure:
+[
+  {
+    "id": 1,
+    "questionText": "question here",
+    "type": "technical|behavioral|situational",
+    "skillTag": "relevant skill",
+    "difficulty": "${difficulty}",
+    "timeLimit": 5,
+    "expectedAnswer": "brief guidance for evaluation"
+  }
+]`
+    
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text().trim()
       
-      const questions = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
-      return Array.isArray(questions) ? questions : [];
-    } catch (error) {
-      console.error('Error generating questions:', error);
-      return [];
-    }
-  }
-
-  async analyzeInterviewPerformance(
-    questions: Array<{ skill: string; question: string; answer: string }>,
-    jobTitle: string
-  ): Promise<{
-    summary: string;
-    strengths: string;
-    weaknesses: string;
-    ratedSkills: Record<string, number>;
-    overallScore: number;
-    recommendations: string;
-  }> {
-    const prompt = `
-    Analyze the following interview performance for a ${jobTitle} position.
-    
-    Questions and Answers:
-    ${questions.map((q, i) => `${i + 1}. Skill: ${q.skill}\nQuestion: ${q.question}\nAnswer: ${q.answer}\n`).join('\n')}
-    
-    Return a JSON object with the following structure:
-    {
-      "summary": "Brief overall assessment",
-      "strengths": "List of strengths demonstrated",
-      "weaknesses": "Areas for improvement",
-      "ratedSkills": {"skill1": score1, "skill2": score2, ...},
-      "overallScore": 85,
-      "recommendations": "Specific recommendations for improvement"
-    }
-    
-    Rate each skill from 1-100 based on the answer quality.
-    `;
-
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
+      const cleanText = text.replace(/```json|```/g, '').trim()
+      const questions = JSON.parse(cleanText)
       
-      const analysis = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
-      return analysis;
+      return Array.isArray(questions) ? questions : []
     } catch (error) {
-      console.error('Error analyzing performance:', error);
-      return {
-        summary: 'Unable to analyze performance at this time.',
-        strengths: 'Analysis unavailable',
-        weaknesses: 'Analysis unavailable',
-        ratedSkills: {},
-        overallScore: 0,
-        recommendations: 'Please try again later.'
-      };
+      console.error('Error generating questions:', error)
+      return this.fallbackQuestions(candidateSkills, difficulty)
     }
-  }
+  },
 
-  async generateJobDescription(
-    title: string,
-    company: string,
-    requirements: string[],
-    experience: string
-  ): Promise<string> {
-    const prompt = `
-    Generate a comprehensive job description for a ${title} position at ${company}.
-    
-    Requirements: ${requirements.join(', ')}
-    Experience Level: ${experience}
-    
-    Include:
-    - Company overview
-    - Role responsibilities
-    - Required skills and qualifications
-    - Preferred qualifications
-    - Benefits and perks
-    - Application instructions
-    
-    Make it professional and engaging.
-    `;
+  fallbackQuestions(skills: string[], difficulty: string) {
+    const templates = [
+      {
+        id: 1,
+        questionText: `Explain your experience with ${skills[0] || 'web development'} and how you've used it in projects.`,
+        type: 'technical',
+        skillTag: skills[0] || 'General',
+        difficulty,
+        timeLimit: 5,
+        expectedAnswer: 'Should demonstrate practical experience and understanding'
+      },
+      {
+        id: 2,
+        questionText: 'Describe a challenging problem you solved and your approach to solving it.',
+        type: 'behavioral',
+        skillTag: 'Problem Solving',
+        difficulty,
+        timeLimit: 4,
+        expectedAnswer: 'Should show analytical thinking and problem-solving process'
+      }
+    ]
+    return templates
+  },
 
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
-    } catch (error) {
-      console.error('Error generating job description:', error);
-      return 'Unable to generate job description at this time.';
-    }
-  }
-
-  async analyzeResume(resumeText: string): Promise<{
-    skills: string[];
-    experience: string;
-    education: string;
-    summary: string;
-    strengths: string[];
-    improvements: string[];
-  }> {
-    const prompt = `
-    Analyze the following resume and extract key information.
-    Return a JSON object with:
-    {
-      "skills": ["skill1", "skill2", ...],
-      "experience": "years of experience",
-      "education": "education summary",
-      "summary": "brief professional summary",
-      "strengths": ["strength1", "strength2", ...],
-      "improvements": ["improvement1", "improvement2", ...]
-    }
+  async evaluateAnswer(question: string, answer: string, skillTag: string, expectedAnswer?: string) {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
     
-    Resume text:
-    ${resumeText}
-    `;
+    const prompt = `Evaluate this interview answer comprehensively:
 
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      const analysis = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
-      return analysis;
-    } catch (error) {
-      console.error('Error analyzing resume:', error);
-      return {
-        skills: [],
-        experience: 'Unknown',
-        education: 'Unknown',
-        summary: 'Unable to analyze resume at this time.',
-        strengths: [],
-        improvements: []
-      };
-    }
-  }
+Question: ${question}
+Skill being tested: ${skillTag}
+Expected answer guidance: ${expectedAnswer || 'N/A'}
 
-  async generateFeedback(
-    question: string,
-    answer: string,
-    skill: string
-  ): Promise<{
-    score: number;
-    feedback: string;
-    suggestions: string[];
-  }> {
-    const prompt = `
-    Evaluate the following interview answer and provide detailed feedback.
-    
-    Question: ${question}
-    Answer: ${answer}
-    Skill Area: ${skill}
-    
-    Return a JSON object with:
-    {
-      "score": 85,
-      "feedback": "detailed feedback on the answer",
-      "suggestions": ["suggestion1", "suggestion2", ...]
-    }
-    
-    Score should be 0-100 based on:
-    - Technical accuracy
-    - Clarity of explanation
-    - Problem-solving approach
-    - Communication skills
-    `;
+Candidate's Answer: ${answer}
 
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      const feedback = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
-      return feedback;
-    } catch (error) {
-      console.error('Error generating feedback:', error);
-      return {
-        score: 0,
-        feedback: 'Unable to generate feedback at this time.',
-        suggestions: []
-      };
-    }
-  }
-
-  async detectAnomalies(
-    videoData: any,
-    audioData: any,
-    context: string
-  ): Promise<{
-    anomalies: Array<{
-      type: string;
-      severity: 'low' | 'medium' | 'high';
-      description: string;
-      timestamp: number;
-    }>;
-    riskScore: number;
-  }> {
-    // This would integrate with actual proctoring services
-    // For now, return mock data
-    return {
-      anomalies: [],
-      riskScore: 0
-    };
-  }
+Provide evaluation in this JSON format:
+{
+  "score": 85,
+  "strengths": ["specific strength 1", "specific strength 2"],
+  "weaknesses": ["area for improvement 1", "area for improvement 2"],
+  "feedback": "detailed constructive feedback",
+  "suggestions": ["specific suggestion 1", "specific suggestion 2"]
 }
 
-export const aiService = new AIService();
+Score should be 0-100 based on:
+- Technical accuracy (if applicable)
+- Clarity of communication
+- Depth of understanding
+- Practical experience demonstrated`
+    
+    try {
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text().trim()
+      
+      const cleanText = text.replace(/```json|```/g, '').trim()
+      const evaluation = JSON.parse(cleanText)
+      
+      return {
+        score: evaluation.score || 50,
+        strengths: evaluation.strengths || [],
+        weaknesses: evaluation.weaknesses || [],
+        feedback: evaluation.feedback || 'Answer provided.',
+        suggestions: evaluation.suggestions || []
+      }
+    } catch (error) {
+      console.error('Error evaluating answer:', error)
+      return {
+        score: 50,
+        strengths: ['Answer provided'],
+        weaknesses: ['Could provide more detail'],
+        feedback: 'Thank you for your response.',
+        suggestions: ['Consider providing more specific examples']
+      }
+    }
+  },
+
+  async generateFeedbackReport(sessionData: {
+    questions: any[]
+    answers: any[]
+    scores: number[]
+    candidateSkills: string[]
+    jobTitle: string
+  }) {
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    
+    const averageScore = sessionData.scores.reduce((a, b) => a + b, 0) / sessionData.scores.length
+    
+    const prompt = `Generate a comprehensive interview feedback report:
+
+Job Title: ${sessionData.jobTitle}
+Candidate Skills: ${sessionData.candidateSkills.join(', ')}
+Average Score: ${averageScore.toFixed(1)}/100
+Total Questions: ${sessionData.questions.length}
+
+Question Performance:
+${sessionData.questions.map((q, i) => 
+  `Q${i+1}: ${q.questionText} (Score: ${sessionData.scores[i] || 0}/100)`
+).join('\n')}
+
+Generate a JSON report with:
+{
+  "overallScore": ${Math.round(averageScore)},
+  "summary": "2-3 sentence overall assessment",
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "weaknesses": ["weakness 1", "weakness 2"],
+  "skillAssessment": {
+    "skill1": 85,
+    "skill2": 70
+  },
+  "recommendations": ["recommendation 1", "recommendation 2", "recommendation 3"],
+  "nextSteps": ["next step 1", "next step 2"]
+}`
+    
+    try {
+      const result = await model.generateContent(prompt)
+      const response = await result.response
+      const text = response.text().trim()
+      
+      const cleanText = text.replace(/```json|```/g, '').trim()
+      return JSON.parse(cleanText)
+    } catch (error) {
+      console.error('Error generating feedback report:', error)
+      return {
+        overallScore: Math.round(averageScore),
+        summary: 'Interview completed successfully.',
+        strengths: ['Participated in the interview'],
+        weaknesses: ['Could provide more detailed responses'],
+        skillAssessment: {},
+        recommendations: ['Continue practicing interview skills'],
+        nextSteps: ['Review feedback and improve']
+      }
+    }
+  }
+
+}

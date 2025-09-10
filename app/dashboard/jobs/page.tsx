@@ -4,10 +4,13 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Plus, Search, Edit, Trash2, Users, Calendar } from 'lucide-react'
+import { Briefcase, Plus, Search, Filter, Eye, Edit, Trash2, Users, Calendar, MapPin, DollarSign } from 'lucide-react'
+import Link from 'next/link'
+import { DashboardLayout } from '@/components/dashboard-layout'
 
 interface Job {
   id: string
@@ -36,56 +39,30 @@ export default function JobsPage() {
     title: '',
     company: '',
     location: '',
-    type: 'full-time' as const,
+    type: 'full-time' as 'full-time' | 'part-time' | 'contract',
     experience: '',
     skills: '',
     description: ''
   })
 
   useEffect(() => {
-    // Mock data for now
-    setJobs([
-      {
-        id: '1',
-        title: 'Senior Frontend Developer',
-        company: 'Tech Corp',
-        location: 'San Francisco, CA',
-        type: 'full-time',
-        experience: '5+ years',
-        skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
-        description: 'We are looking for a senior frontend developer...',
-        status: 'active',
-        applicants: 12,
-        createdAt: '2024-01-15'
-      },
-      {
-        id: '2',
-        title: 'Full Stack Engineer',
-        company: 'StartupXYZ',
-        location: 'Remote',
-        type: 'full-time',
-        experience: '3+ years',
-        skills: ['Python', 'Django', 'React', 'PostgreSQL'],
-        description: 'Join our growing team as a full stack engineer...',
-        status: 'active',
-        applicants: 8,
-        createdAt: '2024-01-10'
-      },
-      {
-        id: '3',
-        title: 'DevOps Engineer',
-        company: 'CloudTech',
-        location: 'New York, NY',
-        type: 'contract',
-        experience: '4+ years',
-        skills: ['AWS', 'Docker', 'Kubernetes', 'Terraform'],
-        description: 'Looking for an experienced DevOps engineer...',
-        status: 'draft',
-        applicants: 0,
-        createdAt: '2024-01-08'
+    const fetchJobs = async () => {
+      try {
+        const response = await fetch('/api/jobs')
+        if (response.ok) {
+          const data = await response.json()
+          setJobs(data.jobs || [])
+        } else {
+          console.error('Failed to fetch jobs')
+        }
+      } catch (error) {
+        console.error('Error fetching jobs:', error)
+      } finally {
+        setLoading(false)
       }
-    ])
-    setLoading(false)
+    }
+
+    fetchJobs()
   }, [])
 
   const filteredJobs = jobs.filter(job => {
@@ -98,32 +75,43 @@ export default function JobsPage() {
     return matchesSearch && matchesStatus
   })
 
-  const handleCreateJob = () => {
-    const newJob: Job = {
-      id: Date.now().toString(),
-      title: formData.title,
-      company: formData.company,
-      location: formData.location,
-      type: formData.type,
-      experience: formData.experience,
-      skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
-      description: formData.description,
-      status: 'draft',
-      applicants: 0,
-      createdAt: new Date().toISOString().split('T')[0]
+  const handleCreateJob = async () => {
+    try {
+      const response = await fetch('/api/jobs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: formData.title,
+          company: formData.company,
+          location: formData.location,
+          type: formData.type,
+          experience: formData.experience,
+          skills: formData.skills.split(',').map(s => s.trim()).filter(Boolean),
+          description: formData.description
+        })
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        setJobs(prev => [data.job, ...prev])
+        setFormData({
+          title: '',
+          company: '',
+          location: '',
+          type: 'full-time',
+          experience: '',
+          skills: '',
+          description: ''
+        })
+        setIsCreateDialogOpen(false)
+      } else {
+        console.error('Failed to create job')
+      }
+    } catch (error) {
+      console.error('Error creating job:', error)
     }
-    
-    setJobs(prev => [newJob, ...prev])
-    setFormData({
-      title: '',
-      company: '',
-      location: '',
-      type: 'full-time',
-      experience: '',
-      skills: '',
-      description: ''
-    })
-    setIsCreateDialogOpen(false)
   }
 
   const handleEditJob = (job: Job) => {
@@ -194,12 +182,11 @@ export default function JobsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Job Postings</h1>
+    <DashboardLayout>
+      <div className="mb-8">
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">Job Postings</h1>
               <p className="text-gray-600">
                 Create and manage job descriptions for candidates
               </p>
@@ -307,7 +294,7 @@ export default function JobsPage() {
         </div>
 
         {/* Filters */}
-        <Card className="mb-6">
+        <Card className="mb-6 bg-white/80 backdrop-blur-sm border-0 shadow-lg">
           <CardContent className="p-6">
             <div className="flex flex-col md:flex-row gap-4">
               <div className="flex-1">
@@ -354,7 +341,7 @@ export default function JobsPage() {
         {/* Jobs List */}
         <div className="grid gap-4">
           {loading ? (
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="p-8 text-center">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
                 <p className="mt-2 text-gray-600">Loading jobs...</p>
@@ -362,7 +349,7 @@ export default function JobsPage() {
             </Card>
           ) : filteredJobs.length > 0 ? (
             filteredJobs.map((job) => (
-              <Card key={job.id} className="hover:shadow-md transition-shadow">
+              <Card key={job.id} className="bg-white/80 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -435,7 +422,7 @@ export default function JobsPage() {
               </Card>
             ))
           ) : (
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="p-8 text-center">
                 <div className="text-gray-400 mb-4">
                   <Plus className="h-12 w-12 mx-auto" />
@@ -455,13 +442,13 @@ export default function JobsPage() {
 
         {/* Stats Summary */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-gray-900">{jobs.length}</div>
               <div className="text-sm text-gray-600">Total Jobs</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-green-600">
                 {jobs.filter(j => j.status === 'active').length}
@@ -469,7 +456,7 @@ export default function JobsPage() {
               <div className="text-sm text-gray-600">Active</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-yellow-600">
                 {jobs.filter(j => j.status === 'draft').length}
@@ -477,7 +464,7 @@ export default function JobsPage() {
               <div className="text-sm text-gray-600">Drafts</div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="p-4 text-center">
               <div className="text-2xl font-bold text-blue-600">
                 {jobs.reduce((sum, job) => sum + job.applicants, 0)}
@@ -485,8 +472,7 @@ export default function JobsPage() {
               <div className="text-sm text-gray-600">Total Applicants</div>
             </CardContent>
           </Card>
-        </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

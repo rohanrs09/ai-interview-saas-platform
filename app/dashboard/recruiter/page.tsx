@@ -5,23 +5,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { 
-  Users, 
-  Briefcase, 
-  TrendingUp, 
-  Calendar,
-  Search,
-  Filter,
-  Plus,
-  Eye,
-  MessageSquare,
-  Star,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle
-} from 'lucide-react'
+import { TrendingUp, Users, Briefcase, Award, Calendar, BarChart3, Target, Plus, Eye, MessageSquare, Clock, AlertCircle, CheckCircle, XCircle, Search } from 'lucide-react'
 import Link from 'next/link'
+import { DashboardLayout } from '@/components/dashboard-layout'
 
 interface Candidate {
   id: string
@@ -64,111 +50,36 @@ export default function RecruiterDashboard() {
   const [statusFilter, setStatusFilter] = useState('all')
 
   useEffect(() => {
-    // Mock data for recruiter dashboard
-    setCandidates([
-      {
-        id: '1',
-        name: 'Sarah Johnson',
-        email: 'sarah.johnson@email.com',
-        position: 'Senior Frontend Developer',
-        status: 'interviewing',
-        score: 85,
-        appliedDate: '2024-01-15',
-        skills: ['React', 'TypeScript', 'Node.js'],
-        experience: '5 years'
-      },
-      {
-        id: '2',
-        name: 'Michael Chen',
-        email: 'michael.chen@email.com',
-        position: 'Full Stack Developer',
-        status: 'completed',
-        score: 92,
-        appliedDate: '2024-01-12',
-        skills: ['Python', 'Django', 'PostgreSQL'],
-        experience: '4 years'
-      },
-      {
-        id: '3',
-        name: 'Emily Rodriguez',
-        email: 'emily.rodriguez@email.com',
-        position: 'DevOps Engineer',
-        status: 'pending',
-        appliedDate: '2024-01-18',
-        skills: ['AWS', 'Docker', 'Kubernetes'],
-        experience: '6 years'
-      },
-      {
-        id: '4',
-        name: 'David Kim',
-        email: 'david.kim@email.com',
-        position: 'Backend Developer',
-        status: 'rejected',
-        score: 65,
-        appliedDate: '2024-01-10',
-        skills: ['Java', 'Spring', 'MySQL'],
-        experience: '3 years'
-      }
-    ])
+    const fetchRecruiterData = async () => {
+      try {
+        // Fetch candidates
+        const candidatesResponse = await fetch('/api/candidates')
+        if (candidatesResponse.ok) {
+          const candidatesData = await candidatesResponse.json()
+          setCandidates(candidatesData.candidates || [])
+        }
 
-    setJobs([
-      {
-        id: '1',
-        title: 'Senior Frontend Developer',
-        department: 'Engineering',
-        status: 'active',
-        applicants: 24,
-        interviews: 8,
-        createdDate: '2024-01-01',
-        priority: 'high'
-      },
-      {
-        id: '2',
-        title: 'DevOps Engineer',
-        department: 'Infrastructure',
-        status: 'active',
-        applicants: 15,
-        interviews: 5,
-        createdDate: '2024-01-05',
-        priority: 'medium'
-      },
-      {
-        id: '3',
-        title: 'Product Manager',
-        department: 'Product',
-        status: 'paused',
-        applicants: 32,
-        interviews: 12,
-        createdDate: '2023-12-20',
-        priority: 'low'
-      }
-    ])
+        // Fetch jobs
+        const jobsResponse = await fetch('/api/jobs')
+        if (jobsResponse.ok) {
+          const jobsData = await jobsResponse.json()
+          setJobs(jobsData.jobs || [])
+        }
 
-    setRecentActivity([
-      {
-        id: '1',
-        type: 'application',
-        candidate: 'Emily Rodriguez',
-        position: 'DevOps Engineer',
-        timestamp: '2 hours ago'
-      },
-      {
-        id: '2',
-        type: 'interview',
-        candidate: 'Sarah Johnson',
-        position: 'Senior Frontend Developer',
-        timestamp: '4 hours ago'
-      },
-      {
-        id: '3',
-        type: 'hire',
-        candidate: 'Michael Chen',
-        position: 'Full Stack Developer',
-        timestamp: '1 day ago'
+        // Fetch analytics for recent activity
+        const analyticsResponse = await fetch('/api/analytics')
+        if (analyticsResponse.ok) {
+          const analyticsData = await analyticsResponse.json()
+          setRecentActivity(analyticsData.analytics?.recentActivity || [])
+        }
+      } catch (error) {
+        console.error('Error fetching recruiter data:', error)
+      } finally {
+        setLoading(false)
       }
-    ])
+    }
 
-    setLoading(false)
+    fetchRecruiterData()
   }, [])
 
   const filteredCandidates = candidates.filter(candidate => {
@@ -209,27 +120,25 @@ export default function RecruiterDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading dashboard...</p>
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-2 text-gray-600">Loading dashboard...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            Recruiter Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Manage candidates, track interviews, and analyze recruitment performance
-          </p>
-        </div>
+    <DashboardLayout>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent mb-2">Recruiter Dashboard</h1>
+        <p className="text-gray-600">
+          Manage candidates, track interviews, and analyze recruitment performance
+        </p>
+      </div>
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -322,7 +231,7 @@ export default function RecruiterDashboard() {
                     <Input
                       placeholder="Search candidates..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
                       className="pl-10"
                     />
                   </div>
@@ -506,8 +415,7 @@ export default function RecruiterDashboard() {
               </CardContent>
             </Card>
           </div>
-        </div>
       </div>
-    </div>
+    </DashboardLayout>
   )
 }

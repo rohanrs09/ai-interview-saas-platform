@@ -1,57 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@clerk/nextjs/server'
-
-// Mock data for now - in production, this would come from your database
-const mockJobs = [
-  {
-    id: '1',
-    title: 'Senior Frontend Developer',
-    company: 'Tech Corp',
-    location: 'San Francisco, CA',
-    type: 'full-time',
-    experience: '5+ years',
-    skills: ['React', 'TypeScript', 'Node.js', 'AWS'],
-    description: 'We are looking for a senior frontend developer with strong React and TypeScript experience...',
-    difficulty: 'advanced',
-    estimatedTime: 45,
-    questionsCount: 8,
-    status: 'active',
-    applicants: 12,
-    createdAt: '2024-01-15'
-  },
-  {
-    id: '2',
-    title: 'Full Stack Engineer',
-    company: 'StartupXYZ',
-    location: 'Remote',
-    type: 'full-time',
-    experience: '3+ years',
-    skills: ['Python', 'Django', 'React', 'PostgreSQL'],
-    description: 'Join our growing team as a full stack engineer working on exciting projects...',
-    difficulty: 'intermediate',
-    estimatedTime: 30,
-    questionsCount: 6,
-    status: 'active',
-    applicants: 8,
-    createdAt: '2024-01-10'
-  },
-  {
-    id: '3',
-    title: 'Junior React Developer',
-    company: 'WebDev Inc',
-    location: 'New York, NY',
-    type: 'full-time',
-    experience: '1+ years',
-    skills: ['React', 'JavaScript', 'CSS', 'HTML'],
-    description: 'Perfect opportunity for a junior developer to grow their React skills...',
-    difficulty: 'beginner',
-    estimatedTime: 20,
-    questionsCount: 4,
-    status: 'active',
-    applicants: 15,
-    createdAt: '2024-01-08'
-  }
-]
+import { db } from '@/lib/db'
+import { jobDescriptions } from '@/lib/schema'
+import { eq, ilike, or } from 'drizzle-orm'
+import { nanoid } from 'nanoid'
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,27 +15,50 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const search = searchParams.get('search')
     const difficulty = searchParams.get('difficulty')
-    const status = searchParams.get('status')
+    const isActive = searchParams.get('status') !== 'inactive'
 
-    let filteredJobs = mockJobs
-
+    // Build query conditions
+    let whereConditions = []
+    
     if (search) {
-      filteredJobs = filteredJobs.filter(job =>
-        job.title.toLowerCase().includes(search.toLowerCase()) ||
-        job.company.toLowerCase().includes(search.toLowerCase()) ||
-        job.skills.some(skill => skill.toLowerCase().includes(search.toLowerCase()))
+      whereConditions.push(
+        or(
+          ilike(jobDescriptions.title, `%${search}%`),
+          ilike(jobDescriptions.company, `%${search}%`)
+        )
       )
     }
 
     if (difficulty && difficulty !== 'all') {
-      filteredJobs = filteredJobs.filter(job => job.difficulty === difficulty)
+      whereConditions.push(eq(jobDescriptions.difficulty, difficulty as any))
     }
 
-    if (status && status !== 'all') {
-      filteredJobs = filteredJobs.filter(job => job.status === status)
-    }
+    whereConditions.push(eq(jobDescriptions.isActive, isActive))
 
-    return NextResponse.json({ jobs: filteredJobs })
+    // Fetch jobs from database
+    const jobs = await db
+      .select()
+      .from(jobDescriptions)
+      .where(whereConditions.length > 0 ? whereConditions.reduce((acc, condition) => acc && condition) : undefined)
+
+    return NextResponse.json({ 
+      jobs: jobs.map(job => ({
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        location: job.location,
+        type: job.jobType,
+        experience: job.experience,
+        skills: job.requiredSkills || [],
+        description: job.description,
+        difficulty: job.difficulty,
+        estimatedTime: job.estimatedTime,
+        questionsCount: job.questionsCount,
+        status: job.isActive ? 'active' : 'inactive',
+        applicants: job.applicants,
+        createdAt: job.createdAt.toISOString().split('T')[0]
+      }))
+    })
   } catch (error) {
     console.error('Error fetching jobs:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
@@ -104,25 +79,43 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // In production, save to database
-    const newJob = {
-      id: Date.now().toString(),
-      title,
-      company,
-      location,
-      type,
-      experience,
-      skills: Array.isArray(skills) ? skills : skills.split(',').map(s => s.trim()).filter(Boolean),
-      description,
-      difficulty: difficulty || 'intermediate',
-      estimatedTime: 30, // Default
-      questionsCount: 5, // Default
-      status: 'draft',
-      applicants: 0,
-      createdAt: new Date().toISOString().split('T')[0]
-    }
+    // Save to database
+    const [newJob] = await db
+      .insert(jobDescriptions)
+      .values({
+        title,
+        company,
+        location,
+        jobType: type,
+        experience,
+        requiredSkills: Array.isArray(skills) ? skills : skills.split(',').map((s: string) => s.trim()).filter(Boolean),
+        description,
+        difficulty: difficulty || 'intermediate',
+        estimatedTime: 30,
+        questionsCount: 5,
+        createdBy: userId,
+        isActive: false // Start as draft
+      })
+      .returning()
 
-    return NextResponse.json({ job: newJob }, { status: 201 })
+    return NextResponse.json({ 
+      job: {
+        id: newJob.id,
+        title: newJob.title,
+        company: newJob.company,
+        location: newJob.location,
+        type: newJob.jobType,
+        experience: newJob.experience,
+        skills: newJob.requiredSkills || [],
+        description: newJob.description,
+        difficulty: newJob.difficulty,
+        estimatedTime: newJob.estimatedTime,
+        questionsCount: newJob.questionsCount,
+        status: newJob.isActive ? 'active' : 'draft',
+        applicants: newJob.applicants,
+        createdAt: newJob.createdAt.toISOString().split('T')[0]
+      }
+    }, { status: 201 })
   } catch (error) {
     console.error('Error creating job:', error)
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

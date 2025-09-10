@@ -6,6 +6,7 @@ import { useState } from 'react'
 import { Brain, Menu, X, LogOut, Sparkles } from 'lucide-react'
 import { useUser, UserButton, SignInButton, SignOutButton } from '@clerk/nextjs'
 import { Button } from '@/components/ui/button'
+import Image from 'next/image'
 
 function NavLink({ href, children }: { href: string; children: React.ReactNode }) {
   const pathname = usePathname()
@@ -36,13 +37,17 @@ export function Navigation() {
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
+          {/* <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
             <Brain className="h-5 w-5 text-white" />
+            
             <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+          </div> */}
+          <div>
+            <Image src="/logo.svg" alt="Logo" width={32} height={32} className='w-full h-full object-contain' />
           </div>
           <div className="flex flex-col">
             <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">AI Interview</span>
-            <span className="text-xs text-slate-500 font-medium">Powered by AI</span>
+            <span className="text-xs text-slate-500 font-medium">Powered by ayfirto</span>
           </div>
         </Link>
 

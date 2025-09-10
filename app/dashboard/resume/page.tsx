@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { FileText, Upload, Brain, CheckCircle, AlertCircle, TrendingUp, Target } from 'lucide-react'
+import { DashboardLayout } from '@/components/dashboard-layout'
 import { useUser } from '@clerk/nextjs'
 
 export default function ResumePage() {
@@ -47,10 +49,9 @@ export default function ResumePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Resume Analysis</h1>
+    <DashboardLayout>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Resume Analysis</h1>
           <p className="text-gray-600">
             Upload your resume to extract skills and get personalized interview questions
           </p>
@@ -170,7 +171,6 @@ export default function ResumePage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </DashboardLayout>
   )
 }

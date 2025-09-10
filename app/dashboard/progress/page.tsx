@@ -3,7 +3,11 @@
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { TrendingUp, Calendar, Target, Award } from 'lucide-react'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { TrendingUp, Award, Target, Clock, Brain, BarChart3, CheckCircle, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
+import { DashboardLayout } from '@/components/dashboard-layout'
 
 interface InterviewSession {
   id: string
@@ -18,31 +22,23 @@ export default function ProgressPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Mock data for now
-    setSessions([
-      {
-        id: '1',
-        jobTitle: 'Frontend Developer',
-        score: 85,
-        date: '2024-01-15',
-        skills: ['React', 'JavaScript', 'CSS']
-      },
-      {
-        id: '2',
-        jobTitle: 'Full Stack Developer',
-        score: 78,
-        date: '2024-01-10',
-        skills: ['React', 'Node.js', 'PostgreSQL']
-      },
-      {
-        id: '3',
-        jobTitle: 'Software Engineer',
-        score: 92,
-        date: '2024-01-05',
-        skills: ['Python', 'Django', 'AWS']
+    const fetchProgress = async () => {
+      try {
+        const response = await fetch('/api/analytics/candidate')
+        if (response.ok) {
+          const data = await response.json()
+          setSessions(data.recentSessions || [])
+        } else {
+          console.error('Failed to fetch progress data')
+        }
+      } catch (error) {
+        console.error('Error fetching progress:', error)
+      } finally {
+        setLoading(false)
       }
-    ])
-    setLoading(false)
+    }
+
+    fetchProgress()
   }, [])
 
   const averageScore = sessions.length > 0 
@@ -52,10 +48,9 @@ export default function ProgressPage() {
   const totalInterviews = sessions.length
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Your Progress</h1>
+    <DashboardLayout>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Your Progress</h1>
           <p className="text-gray-600">
             Track your interview performance and improvement over time
           </p>
@@ -111,7 +106,7 @@ export default function ProgressPage() {
             <CardContent className="p-6">
               <div className="flex items-center">
                 <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl">
-                  <Calendar className="h-6 w-6 text-white" />
+                  <Clock className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">This Month</p>
@@ -213,7 +208,6 @@ export default function ProgressPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
-    </div>
+    </DashboardLayout>
   )
 }
