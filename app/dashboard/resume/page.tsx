@@ -47,10 +47,10 @@ export default function ResumePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Resume Analysis</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Resume Analysis</h1>
           <p className="text-gray-600">
             Upload your resume to extract skills and get personalized interview questions
           </p>
@@ -58,7 +58,7 @@ export default function ResumePage() {
 
         <div className="grid md:grid-cols-2 gap-8">
           {/* Upload Section */}
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <Upload className="h-5 w-5 mr-2" />
@@ -95,7 +95,7 @@ export default function ResumePage() {
           </Card>
 
           {/* Results Section */}
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <FileText className="h-5 w-5 mr-2" />
@@ -134,15 +134,15 @@ export default function ResumePage() {
         </div>
 
         {/* Instructions */}
-        <Card className="mt-8">
+        <Card className="mt-8 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
             <CardTitle>How it works</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-3 gap-6">
               <div className="text-center">
-                <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-blue-600 font-bold">1</span>
+                <div className="bg-gradient-to-r from-blue-500 to-blue-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white font-bold">1</span>
                 </div>
                 <h3 className="font-medium mb-2">Upload Resume</h3>
                 <p className="text-sm text-gray-600">
@@ -150,8 +150,8 @@ export default function ResumePage() {
                 </p>
               </div>
               <div className="text-center">
-                <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-blue-600 font-bold">2</span>
+                <div className="bg-gradient-to-r from-green-500 to-green-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white font-bold">2</span>
                 </div>
                 <h3 className="font-medium mb-2">AI Analysis</h3>
                 <p className="text-sm text-gray-600">
@@ -159,8 +159,8 @@ export default function ResumePage() {
                 </p>
               </div>
               <div className="text-center">
-                <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-blue-600 font-bold">3</span>
+                <div className="bg-gradient-to-r from-purple-500 to-purple-600 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <span className="text-white font-bold">3</span>
                 </div>
                 <h3 className="font-medium mb-2">Get Questions</h3>
                 <p className="text-sm text-gray-600">

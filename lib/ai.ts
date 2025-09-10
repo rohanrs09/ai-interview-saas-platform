@@ -1,60 +1,46 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const genAI = new GoogleGenerativeAI(process.env.GOOGLE_GEMINI_API_KEY!);
+const genAI = new GoogleGenerativeAI(process.env.GOOGLE_AI_API_KEY!);
 
-export class AIService {
-  private model = genAI.getGenerativeModel({ model: 'gemini-pro' });
-
+export const aiService = {
   async extractSkillsFromResume(resumeText: string): Promise<string[]> {
-    const prompt = `
-    Extract technical skills and competencies from the following resume text. 
-    Return only a JSON array of skill names, no other text.
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
-    Resume text:
-    ${resumeText}
-    `;
+    const prompt = `Extract technical skills, programming languages, frameworks, tools, and relevant technologies from this resume. Return only a JSON array of skills, no other text:
 
+Resume:
+${resumeText}
+
+Example format: ["JavaScript", "React", "Node.js", "Python", "AWS", "Docker"]`;
+    
     try {
-      const result = await this.model.generateContent(prompt);
+      const result = await model.generateContent(prompt);
       const response = await result.response;
-      const text = response.text();
+      const text = response.text().trim();
       
-      // Try to parse as JSON array
-      const skills = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
+      // Clean up the response and parse JSON
+      const cleanText = text.replace(/```json|```/g, '').trim();
+      const skills = JSON.parse(cleanText);
+      
       return Array.isArray(skills) ? skills : [];
     } catch (error) {
       console.error('Error extracting skills:', error);
-      return [];
+      // Fallback: basic keyword extraction
+      return this.fallbackSkillExtraction(resumeText);
     }
-  }
+  },
 
-  async extractSkillsFromJobDescription(jobDescription: string): Promise<string[]> {
-    const prompt = `
-    Extract required technical skills and competencies from the following job description. 
-    Return only a JSON array of skill names, no other text.
+  fallbackSkillExtraction(resumeText: string): string[] {
+    const commonSkills = [
+      'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Rust',
+      'React', 'Vue', 'Angular', 'Next.js', 'Node.js', 'Express', 'Django', 'Flask', 'Spring',
+      'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'Git', 'MongoDB', 'PostgreSQL',
+      'MySQL', 'Redis', 'GraphQL', 'REST', 'API', 'Microservices', 'DevOps', 'CI/CD'
+    ];
     
-    Job description:
-    ${jobDescription}
-    `;
-
-    try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      const skills = JSON.parse(text.replace(/```json\n?|\n?```/g, ''));
-      return Array.isArray(skills) ? skills : [];
-    } catch (error) {
-      console.error('Error extracting job skills:', error);
-      return [];
-    }
-  }
-
-  async generateInterviewQuestions(skillGaps: string[], jobTitle: string): Promise<Array<{ 
-    id: string; 
-    skill: string; 
-    question: string; 
-    type: 'technical' | 'behavioral' | 'situational';
+    const foundSkills = commonSkills.filter(skill => 
+      resumeText.toLowerCase().includes(skill.toLowerCase())
+    );
     difficulty: 'easy' | 'medium' | 'hard';
     timeLimit?: number;
   }>> {

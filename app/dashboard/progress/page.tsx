@@ -52,10 +52,10 @@ export default function ProgressPage() {
   const totalInterviews = sessions.length
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 p-4">
       <div className="max-w-6xl mx-auto">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Progress</h1>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent mb-2">Your Progress</h1>
           <p className="text-gray-600">
             Track your interview performance and improvement over time
           </p>
@@ -63,11 +63,11 @@ export default function ProgressPage() {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Target className="h-6 w-6 text-blue-600" />
+                <div className="p-3 bg-gradient-to-r from-blue-500 to-blue-600 rounded-xl">
+                  <Target className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Total Interviews</p>
@@ -77,11 +77,11 @@ export default function ProgressPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Award className="h-6 w-6 text-green-600" />
+                <div className="p-3 bg-gradient-to-r from-green-500 to-green-600 rounded-xl">
+                  <Award className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Average Score</p>
@@ -91,11 +91,11 @@ export default function ProgressPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <TrendingUp className="h-6 w-6 text-purple-600" />
+                <div className="p-3 bg-gradient-to-r from-purple-500 to-purple-600 rounded-xl">
+                  <TrendingUp className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Best Score</p>
@@ -107,11 +107,11 @@ export default function ProgressPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Calendar className="h-6 w-6 text-orange-600" />
+                <div className="p-3 bg-gradient-to-r from-orange-500 to-orange-600 rounded-xl">
+                  <Calendar className="h-6 w-6 text-white" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">This Month</p>
@@ -125,7 +125,7 @@ export default function ProgressPage() {
         </div>
 
         {/* Recent Interviews */}
-        <Card>
+        <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
             <CardTitle>Recent Interview Sessions</CardTitle>
             <CardDescription>
@@ -187,7 +187,7 @@ export default function ProgressPage() {
         </Card>
 
         {/* Skills Progress */}
-        <Card className="mt-8">
+        <Card className="mt-8 bg-white/70 backdrop-blur-sm border-0 shadow-lg">
           <CardHeader>
             <CardTitle>Skills Progress</CardTitle>
             <CardDescription>
