@@ -155,65 +155,110 @@ function generateMockQuestions(params: QuestionGenerationParams) {
   return allQuestions.slice(0, count)
 }
 
+// Extract skills from resume text using basic pattern matching
+function extractSkillsFromText(text: string) {
+  // Common technical skills to look for
+  const commonSkills = [
+    'JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java', 'SQL', 'HTML', 'CSS',
+    'Git', 'Docker', 'AWS', 'Azure', 'GCP', 'REST', 'GraphQL', 'MongoDB', 'PostgreSQL',
+    'Express', 'Next.js', 'Redux', 'Vue', 'Angular', 'Svelte', 'Django', 'Flask', 'Spring',
+    'Machine Learning', 'Data Analysis', 'CI/CD', 'Kubernetes', 'Terraform', 'Jenkins',
+    'Agile', 'Scrum', 'JIRA', 'Confluence', 'Figma', 'UI/UX', 'Responsive Design'
+  ];
+
+  // Extract years of experience using common patterns
+  const experienceMatch = text.match(/(\d+\+?\s*(year|yr)s?\.?\s*\w*\s*experience)/i);
+  const experience = experienceMatch ? experienceMatch[0] : '1+ years';
+
+  // Find skills mentioned in the text
+  const foundSkills = commonSkills.filter(skill => 
+    new RegExp(`\\b${skill}\\b`, 'i').test(text)
+  );
+
+  // If no skills found, use some defaults
+  const skills = foundSkills.length > 0 ? foundSkills : [
+    'Problem Solving',
+    'Team Collaboration',
+    'Communication'
+  ];
+
+  return {
+    skills,
+    experience,
+    achievements: [
+      'Successfully completed multiple projects',
+      'Contributed to team success through collaboration'
+    ],
+    focusAreas: skills.slice(0, 3)
+  };
+}
+
 export async function analyzeResume(resumeText: string) {
+  // Input validation
+  if (!resumeText || typeof resumeText !== 'string' || resumeText.trim().length < 50) {
+    console.warn('Resume text is too short or invalid, using fallback extraction');
+    return extractSkillsFromText(resumeText);
+  }
+
+  // If no API key, use the fallback extraction
   if (!genAI) {
-    return extractSkillsFromText(resumeText)
+    console.log('No Gemini API key found, using fallback resume analysis');
+    return extractSkillsFromText(resumeText);
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' });
     
     const prompt = `
-      Analyze the following resume and extract:
-      1. Technical skills
-      2. Years of experience
-      3. Key achievements
-      4. Suggested interview focus areas
+      Analyze the following resume and extract the following information:
+      1. Technical skills (as an array of strings)
+      2. Years of experience (as a string like "X years")
+      3. Key achievements (as an array of strings, max 3)
+      4. Suggested interview focus areas (as an array of strings, max 3)
       
       Resume:
-      ${resumeText}
+      ${resumeText.substring(0, 10000)}  // Limit input size to prevent token limits
       
-      Return as JSON:
+      Return ONLY a valid JSON object with this exact structure:
       {
         "skills": ["skill1", "skill2"],
         "experience": "X years",
         "achievements": ["achievement1", "achievement2"],
         "focusAreas": ["area1", "area2"]
       }
-    `
+    `;
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
+    console.log('Sending request to Gemini API for resume analysis');
+    const result = await model.generateContent(prompt);
+    const response = await result.response;
+    const text = response.text();
     
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    console.log('Received response from Gemini API:', text.substring(0, 200) + '...');
+    
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0])
+      try {
+        const parsed = JSON.parse(jsonMatch[0]);
+        // Validate the response structure
+        if (Array.isArray(parsed.skills) && parsed.experience) {
+          return {
+            skills: parsed.skills.slice(0, 10), // Limit to 10 skills
+            experience: parsed.experience,
+            achievements: Array.isArray(parsed.achievements) ? parsed.achievements.slice(0, 3) : [],
+            focusAreas: Array.isArray(parsed.focusAreas) ? parsed.focusAreas.slice(0, 3) : []
+          };
+        }
+      } catch (e) {
+        console.error('Error parsing Gemini response:', e);
+      }
     }
     
-    return extractSkillsFromText(resumeText)
+    console.log('Falling back to basic extraction due to invalid response format');
+    return extractSkillsFromText(resumeText);
   } catch (error) {
-    console.error('Error analyzing resume with Gemini:', error)
-    return extractSkillsFromText(resumeText)
-  }
-}
-
-function extractSkillsFromText(text: string) {
-  const commonSkills = [
-    'JavaScript', 'TypeScript', 'React', 'Node.js', 'Python', 'Java',
-    'SQL', 'MongoDB', 'AWS', 'Docker', 'Kubernetes', 'Git',
-    'Agile', 'Scrum', 'REST API', 'GraphQL', 'CI/CD', 'Testing'
-  ]
-  
-  const foundSkills = commonSkills.filter(skill => 
-    text.toLowerCase().includes(skill.toLowerCase())
-  )
-  
-  return {
-    skills: foundSkills,
-    experience: 'To be determined',
-    achievements: [],
-    focusAreas: foundSkills.slice(0, 3)
+    console.error('Error analyzing resume with Gemini:', error);
+    return extractSkillsFromText(resumeText);
   }
 }
 

@@ -1,4 +1,6 @@
 import { pgTable, uuid, text, timestamp, json, integer, boolean, varchar, pgEnum } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
+import { relations, sql as sqlRaw } from 'drizzle-orm';
 
 // Enums
 export const userRoleEnum = pgEnum('user_role', ['candidate', 'recruiter']);
@@ -8,6 +10,17 @@ export const jobTypeEnum = pgEnum('job_type', ['full-time', 'part-time', 'contra
 export const difficultyEnum = pgEnum('difficulty', ['beginner', 'intermediate', 'advanced']);
 export const questionTypeEnum = pgEnum('question_type', ['technical', 'behavioral', 'situational']);
 
+// Common fields
+const timestamps = {
+  createdAt: timestamp('created_at')
+    .notNull()
+    .default(sql`now()`),
+  updatedAt: timestamp('updated_at')
+    .notNull()
+    .default(sql`now()`)
+    .$onUpdate(() => new Date()),
+};
+
 // Users table
 export const users = pgTable('users', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -16,21 +29,41 @@ export const users = pgTable('users', {
   name: varchar('name', { length: 255 }).notNull(),
   role: userRoleEnum('role').notNull().default('candidate'),
   stripeCustomerId: varchar('stripe_customer_id', { length: 255 }),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  ...timestamps,
 });
 
 // Candidate profiles table
 export const candidateProfiles = pgTable('candidate_profiles', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull().unique(),
   resumeText: text('resume_text'),
   extractedSkills: json('extracted_skills').$type<string[]>(),
   experience: text('experience'),
   education: text('education'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  location: text('location'),
+  jobTitle: text('job_title'),
+  phone: varchar('phone', { length: 20 }),
+  linkedinUrl: text('linkedin_url'),
+  githubUrl: text('github_url'),
+  portfolioUrl: text('portfolio_url'),
+  summary: text('summary'),
+  ...timestamps,
 });
+
+// User relations
+export const usersRelations = relations(users, ({ one }) => ({
+  candidateProfile: one(candidateProfiles, {
+    fields: [users.id],
+    references: [candidateProfiles.userId],
+  }),
+}));
+
+export const candidateProfilesRelations = relations(candidateProfiles, ({ one }) => ({
+  user: one(users, {
+    fields: [candidateProfiles.userId],
+    references: [users.id],
+  }),
+}));
 
 // Job descriptions table
 export const jobDescriptions = pgTable('job_descriptions', {
@@ -42,15 +75,14 @@ export const jobDescriptions = pgTable('job_descriptions', {
   location: varchar('location', { length: 255 }),
   salaryRange: varchar('salary_range', { length: 100 }),
   jobType: jobTypeEnum('job_type').notNull().default('full-time'),
-  experience: varchar('experience', { length: 100 }),
-  difficulty: difficultyEnum('difficulty').notNull().default('intermediate'),
+  experienceLevel: difficultyEnum('experience_level').notNull().default('intermediate'),
+  isRemote: boolean('is_remote').default(false),
+  postedById: uuid('posted_by_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  isActive: boolean('is_active').default(true),
   estimatedTime: integer('estimated_time').default(30), // in minutes
   questionsCount: integer('questions_count').default(5),
   applicants: integer('applicants').default(0),
-  createdBy: uuid('created_by').references(() => users.id, { onDelete: 'cascade' }).notNull(),
-  isActive: boolean('is_active').default(true).notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  ...timestamps,
 });
 
 // Interview sessions table
@@ -59,8 +91,14 @@ export const interviewSessions = pgTable('interview_sessions', {
   candidateId: uuid('candidate_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   jobId: uuid('job_id').references(() => jobDescriptions.id, { onDelete: 'cascade' }).notNull(),
   scheduledAt: timestamp('scheduled_at'),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
   status: interviewStatusEnum('status').notNull().default('pending'),
   transcript: text('transcript'),
+  recordingUrl: text('recording_url'),
+  overallScore: integer('overall_score'),
+  notes: text('notes'),
+  ...timestamps,
   totalScore: integer('total_score'),
   duration: integer('duration'), // in minutes
   skillGaps: json('skill_gaps').$type<string[]>(),
@@ -72,30 +110,32 @@ export const interviewSessions = pgTable('interview_sessions', {
 export const interviewQuestions = pgTable('interview_questions', {
   id: uuid('id').primaryKey().defaultRandom(),
   sessionId: uuid('session_id').references(() => interviewSessions.id, { onDelete: 'cascade' }).notNull(),
-  skillTag: varchar('skill_tag', { length: 100 }).notNull(),
   questionText: text('question_text').notNull(),
+  questionType: questionTypeEnum('question_type').notNull().default('technical'),
+  difficulty: difficultyEnum('difficulty').notNull().default('intermediate'),
+  skillTag: varchar('skill_tag', { length: 100 }).notNull(),
   answerText: text('answer_text'),
   score: integer('score'),
   order: integer('order').notNull(),
-  type: questionTypeEnum('type').notNull().default('technical'),
-  difficulty: difficultyEnum('difficulty').notNull().default('intermediate'),
-  timeLimit: integer('time_limit'), // in minutes
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  timeLimit: integer('time_limit'), // in seconds
+  ...timestamps,
 });
 
 // Feedback reports table
 export const feedbackReports = pgTable('feedback_reports', {
   id: uuid('id').primaryKey().defaultRandom(),
   sessionId: uuid('session_id').references(() => interviewSessions.id, { onDelete: 'cascade' }).notNull(),
+  overallScore: integer('overall_score').notNull(),
   summary: text('summary').notNull(),
   strengths: text('strengths').notNull(),
-  weaknesses: text('weaknesses').notNull(),
-  ratedSkills: json('rated_skills').$type<Record<string, number>>(),
-  overallScore: integer('overall_score').notNull(),
-  recommendations: text('recommendations'),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  areasForImprovement: text('areas_for_improvement').notNull(),
+  skillAssessments: json('skill_assessments').$type<Array<{
+    skill: string;
+    score: number;
+    feedback: string;
+  }>>(),
+  recommendations: text('recommendations').notNull(),
+  ...timestamps,
 });
 
 // Subscriptions table
@@ -106,8 +146,8 @@ export const subscriptions = pgTable('subscriptions', {
   plan: varchar('plan', { length: 50 }).notNull(), // 'basic', 'premium', 'enterprise'
   status: subscriptionStatusEnum('status').notNull(),
   currentPeriodEnd: timestamp('current_period_end').notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  cancelAtPeriodEnd: boolean('cancel_at_period_end').default(false),
+  ...timestamps,
 });
 
 // Proctoring logs table (optional)

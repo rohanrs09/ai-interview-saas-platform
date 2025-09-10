@@ -36,7 +36,7 @@ export function Navigation() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200/60 bg-white/95 backdrop-blur-xl shadow-sm">
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 md:px-6">
         {/* Brand */}
-        <Link href="/" className="flex items-center gap-3 group">
+        <Link href={isSignedIn ? "/dashboard" : "/"} className="flex items-center gap-3 group">
           {/* <div className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-105">
             <Brain className="h-5 w-5 text-white" />
             
@@ -53,11 +53,13 @@ export function Navigation() {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-8 md:flex">
-          <NavLink href="/">Home</NavLink>
+          {!isSignedIn && <NavLink href="/">Home</NavLink>}
           <NavLink href="/about">About</NavLink>
+          <NavLink href="/features">Features</NavLink>
           <NavLink href="/pricing">Pricing</NavLink>
-          <NavLink href="/interviews">Interviews</NavLink>
-          <NavLink href="/dashboard">Dashboard</NavLink>
+          <NavLink href="/faq">FAQ</NavLink>
+          {isSignedIn && <NavLink href="/interviews">Interviews</NavLink>}
+          {isSignedIn && <NavLink href="/dashboard">Dashboard</NavLink>}
           <NavLink href="/contact">Contact</NavLink>
         </div>
 
@@ -118,11 +120,13 @@ export function Navigation() {
         <div className="border-t border-slate-200 bg-white/95 backdrop-blur-xl md:hidden animate-in slide-in-from-top-2 duration-200">
           <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-6">
             <div className="flex flex-col gap-4">
-              <NavLink href="/">Home</NavLink>
+              {!isSignedIn && <NavLink href="/">Home</NavLink>}
               <NavLink href="/about">About</NavLink>
+              <NavLink href="/features">Features</NavLink>
               <NavLink href="/pricing">Pricing</NavLink>
-              <NavLink href="/interviews">Interviews</NavLink>
-              <NavLink href="/dashboard">Dashboard</NavLink>
+              <NavLink href="/faq">FAQ</NavLink>
+              {isSignedIn && <NavLink href="/interviews">Interviews</NavLink>}
+              {isSignedIn && <NavLink href="/dashboard">Dashboard</NavLink>}
               <NavLink href="/contact">Contact</NavLink>
             </div>
 
