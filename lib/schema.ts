@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, json, integer, boolean, varchar, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, json, integer, boolean, varchar, pgEnum, real } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { relations, sql as sqlRaw } from 'drizzle-orm';
 
@@ -91,19 +91,12 @@ export const interviewSessions = pgTable('interview_sessions', {
   candidateId: uuid('candidate_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
   jobId: uuid('job_id').references(() => jobDescriptions.id, { onDelete: 'cascade' }).notNull(),
   scheduledAt: timestamp('scheduled_at'),
-  startedAt: timestamp('started_at'),
-  completedAt: timestamp('completed_at'),
   status: interviewStatusEnum('status').notNull().default('pending'),
   transcript: text('transcript'),
-  recordingUrl: text('recording_url'),
-  overallScore: integer('overall_score'),
-  notes: text('notes'),
-  ...timestamps,
   totalScore: integer('total_score'),
   duration: integer('duration'), // in minutes
   skillGaps: json('skill_gaps').$type<string[]>(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  ...timestamps,
 });
 
 // Interview questions table
@@ -207,4 +200,32 @@ export const templateQuestions = pgTable('template_questions', {
   timeLimit: integer('time_limit'),
   order: integer('order').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
+});
+
+// Interview transcripts table for detailed transcript storage
+export const interviewTranscripts = pgTable('interview_transcripts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  sessionId: uuid('session_id').references(() => interviewSessions.id, { onDelete: 'cascade' }).notNull(),
+  questionId: uuid('question_id').references(() => interviewQuestions.id, { onDelete: 'set null' }),
+  speaker: varchar('speaker', { length: 50 }).notNull(), // 'assistant' or 'user'
+  text: text('text').notNull(),
+  timestamp: timestamp('timestamp').notNull(),
+  duration: integer('duration'), // in milliseconds
+  confidence: real('confidence'),
+  emotion: varchar('emotion', { length: 50 }),
+  ...timestamps,
+});
+
+// Job descriptions table
+export const job_descriptions = pgTable('job_descriptions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  title: varchar('title', { length: 255 }).notNull(),
+  company: varchar('company', { length: 255 }),
+  description: text('description').notNull(),
+  requirements: text('requirements'),
+  skills: json('skills').$type<string[]>(),
+  difficulty: difficultyEnum('difficulty').default('intermediate'),
+  isActive: boolean('is_active').default(true),
+  ...timestamps,
 });

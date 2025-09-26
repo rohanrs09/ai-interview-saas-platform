@@ -7,7 +7,7 @@ import { eq, desc, count, avg } from 'drizzle-orm'
 export async function GET(request: NextRequest) {
   try {
     const { userId } = await auth()
-    
+
     if (!userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
@@ -27,9 +27,9 @@ export async function GET(request: NextRequest) {
         overallScore: feedbackReports.overallScore,
         summary: feedbackReports.summary,
         strengths: feedbackReports.strengths,
-        weaknesses: feedbackReports.weaknesses,
+        areasForImprovement: feedbackReports.areasForImprovement,
         recommendations: feedbackReports.recommendations,
-        ratedSkills: feedbackReports.ratedSkills,
+        skillAssessments: feedbackReports.skillAssessments,
         createdAt: feedbackReports.createdAt
       })
       .from(feedbackReports)
@@ -40,13 +40,13 @@ export async function GET(request: NextRequest) {
     // Calculate analytics
     const totalInterviews = sessions.length
     const completedInterviews = sessions.filter(s => s.status === 'completed').length
-    const averageScore = reports.length > 0 
-      ? reports.reduce((sum, r) => sum + (r.overallScore || 0), 0) / reports.length 
+    const averageScore = reports.length > 0
+      ? reports.reduce((sum, r) => sum + (r.overallScore || 0), 0) / reports.length
       : 0
 
     // Get skill performance data
     const skillPerformance: Record<string, { totalQuestions: number; averageScore: number; scores: number[] }> = {}
-    
+
     for (const session of sessions) {
       const questions = await db
         .select()
@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
     // Calculate average scores for each skill
     Object.keys(skillPerformance).forEach(skill => {
       const scores = skillPerformance[skill].scores
-      skillPerformance[skill].averageScore = scores.length > 0 
-        ? scores.reduce((sum, score) => sum + score, 0) / scores.length 
+      skillPerformance[skill].averageScore = scores.length > 0
+        ? scores.reduce((sum, score) => sum + score, 0) / scores.length
         : 0
     })
 
@@ -102,30 +102,30 @@ export async function GET(request: NextRequest) {
           skill,
           averageScore: Math.round(data.averageScore),
           totalQuestions: data.totalQuestions,
-          improvement: data.scores.length > 1 
-            ? data.scores[data.scores.length - 1] - data.scores[0] 
+          improvement: data.scores.length > 1
+            ? data.scores[data.scores.length - 1] - data.scores[0]
             : 0
         })),
         recentSessions,
         performanceTrend,
         strengthsAndWeaknesses: {
-          topStrengths: reports.length > 0 
+          topStrengths: reports.length > 0
             ? [...new Set(reports.flatMap(r => {
-                try {
-                  return typeof r.strengths === 'string' ? JSON.parse(r.strengths) : r.strengths || []
-                } catch {
-                  return []
-                }
-              }))].slice(0, 5)
+              try {
+                return typeof r.strengths === 'string' ? JSON.parse(r.strengths) : r.strengths || []
+              } catch {
+                return []
+              }
+            }))].slice(0, 5)
             : [],
           commonWeaknesses: reports.length > 0
             ? [...new Set(reports.flatMap(r => {
-                try {
-                  return typeof r.weaknesses === 'string' ? JSON.parse(r.weaknesses) : r.weaknesses || []
-                } catch {
-                  return []
-                }
-              }))].slice(0, 5)
+              try {
+                return typeof r.areasForImprovement === 'string' ? JSON.parse(r.areasForImprovement) : r.areasForImprovement || []
+              } catch {
+                return []
+              }
+            }))].slice(0, 5)
             : []
         }
       }

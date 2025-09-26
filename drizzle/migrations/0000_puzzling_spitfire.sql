@@ -56,18 +56,13 @@ CREATE TABLE "interview_sessions" (
 	"candidate_id" uuid NOT NULL,
 	"job_id" uuid NOT NULL,
 	"scheduled_at" timestamp,
-	"started_at" timestamp,
-	"completed_at" timestamp,
 	"status" "interview_status" DEFAULT 'pending' NOT NULL,
 	"transcript" text,
-	"recording_url" text,
-	"overall_score" integer,
-	"notes" text,
-	"created_at" timestamp DEFAULT now() NOT NULL,
-	"updated_at" timestamp DEFAULT now() NOT NULL,
 	"total_score" integer,
 	"duration" integer,
-	"skill_gaps" json
+	"skill_gaps" json,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "interview_templates" (
@@ -85,22 +80,30 @@ CREATE TABLE "interview_templates" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "interview_transcripts" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"session_id" uuid NOT NULL,
+	"question_id" uuid,
+	"speaker" varchar(50) NOT NULL,
+	"text" text NOT NULL,
+	"timestamp" timestamp NOT NULL,
+	"duration" integer,
+	"confidence" real,
+	"emotion" varchar(50),
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "job_descriptions" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"user_id" uuid NOT NULL,
 	"title" varchar(255) NOT NULL,
-	"company" varchar(255) NOT NULL,
+	"company" varchar(255),
 	"description" text NOT NULL,
-	"required_skills" json,
-	"location" varchar(255),
-	"salary_range" varchar(100),
-	"job_type" "job_type" DEFAULT 'full-time' NOT NULL,
-	"experience_level" "difficulty" DEFAULT 'intermediate' NOT NULL,
-	"is_remote" boolean DEFAULT false,
-	"posted_by_id" uuid NOT NULL,
+	"requirements" text,
+	"skills" json,
+	"difficulty" "difficulty" DEFAULT 'intermediate',
 	"is_active" boolean DEFAULT true,
-	"estimated_time" integer DEFAULT 30,
-	"questions_count" integer DEFAULT 5,
-	"applicants" integer DEFAULT 0,
 	"created_at" timestamp DEFAULT now() NOT NULL,
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
@@ -177,7 +180,9 @@ ALTER TABLE "interview_questions" ADD CONSTRAINT "interview_questions_session_id
 ALTER TABLE "interview_sessions" ADD CONSTRAINT "interview_sessions_candidate_id_users_id_fk" FOREIGN KEY ("candidate_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "interview_sessions" ADD CONSTRAINT "interview_sessions_job_id_job_descriptions_id_fk" FOREIGN KEY ("job_id") REFERENCES "public"."job_descriptions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "interview_templates" ADD CONSTRAINT "interview_templates_created_by_users_id_fk" FOREIGN KEY ("created_by") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "job_descriptions" ADD CONSTRAINT "job_descriptions_posted_by_id_users_id_fk" FOREIGN KEY ("posted_by_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "interview_transcripts" ADD CONSTRAINT "interview_transcripts_session_id_interview_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."interview_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "interview_transcripts" ADD CONSTRAINT "interview_transcripts_question_id_interview_questions_id_fk" FOREIGN KEY ("question_id") REFERENCES "public"."interview_questions"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "job_descriptions" ADD CONSTRAINT "job_descriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "proctoring_logs" ADD CONSTRAINT "proctoring_logs_session_id_interview_sessions_id_fk" FOREIGN KEY ("session_id") REFERENCES "public"."interview_sessions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "subscriptions" ADD CONSTRAINT "subscriptions_user_id_users_id_fk" FOREIGN KEY ("user_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "template_questions" ADD CONSTRAINT "template_questions_template_id_interview_templates_id_fk" FOREIGN KEY ("template_id") REFERENCES "public"."interview_templates"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

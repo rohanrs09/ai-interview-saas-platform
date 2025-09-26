@@ -1,123 +1,157 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@clerk/nextjs/server'
+import { requireAuth } from '@/lib/clerk'
 import { db } from '@/lib/db'
-import { interviewSessions, jobDescriptions, interviewQuestions } from '@/lib/schema'
+import { interviewSessions, interviewQuestions, jobDescriptions } from '@/lib/schema'
+import { eq } from 'drizzle-orm'
+import { AIAnalysisService } from '@/lib/ai-analysis'
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await auth()
-    
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const userId = await requireAuth()
+    const body = await request.json()
+    const { jobId, customQuestions, sessionType = 'general' } = body
+
+    let jobData = null
+    let generatedQuestions: any[] = []
+
+    // If jobId provided, fetch job details and generate questions
+    if (jobId) {
+      const jobResult = await db
+        .select()
+        .from(jobDescriptions)
+        .where(eq(jobDescriptions.id, jobId))
+        .limit(1)
+
+      if (jobResult.length > 0) {
+        jobData = jobResult[0]
+
+        // Generate AI questions based on job description
+        const aiService = new AIAnalysisService()
+        try {
+          // map beginner/intermediate/advanced → entry/mid/senior
+          const experienceMap: Record<"beginner" | "intermediate" | "advanced", "entry" | "mid" | "senior"> = {
+            beginner: "entry",
+            intermediate: "mid",
+            advanced: "senior",
+          }
+
+          const normalizedExperience =
+            jobData.experienceLevel
+              ? experienceMap[jobData.experienceLevel]
+              : "mid" // fallback
+
+          generatedQuestions = await aiService.generateQuestionsFromJobDescription(
+            jobData.title,
+            jobData.description,
+            jobData.requiredSkills || [],
+            normalizedExperience
+          )
+        } catch (error) {
+          console.error('Error generating AI questions, using fallback:', error)
+          generatedQuestions = [
+            {
+              questionText: `Tell me about your experience relevant to the ${jobData.title} position.`,
+              type: 'behavioral',
+              skillTag: 'experience'
+            },
+            {
+              questionText: `What interests you about working at ${jobData.company}?`,
+              type: 'behavioral',
+              skillTag: 'motivation'
+            },
+            {
+              questionText: `Describe a challenging project you've worked on recently.`,
+              type: 'behavioral',
+              skillTag: 'problem-solving'
+            }
+          ]
+        }
+      }
+    } else if (customQuestions && customQuestions.length > 0) {
+      // Use provided custom questions
+      const questionInserts = customQuestions.map((q: any, index: number) => ({
+        sessionId: null,
+        questionText: q.text || q.questionText,
+        questionType: q.type || q.questionType || 'behavioral',
+        difficulty: q.difficulty || 'intermediate',
+        skillTag: q.skillTag || 'general',
+        order: index + 1,
+        timeLimit: 120 // 2 minutes per question
+      }))
+      generatedQuestions = questionInserts
+    } else {
+      // Default general interview questions
+      generatedQuestions = [
+        {
+          questionText: 'Tell me about yourself and your professional background.',
+          questionType: 'behavioral',
+          skillTag: 'communication'
+        },
+        {
+          questionText: 'What are your greatest strengths and how do they apply to this role?',
+          questionType: 'behavioral',
+          skillTag: 'self-awareness'
+        },
+        {
+          questionText: 'Describe a challenging situation you faced at work and how you handled it.',
+          questionType: 'behavioral',
+          skillTag: 'problem-solving'
+        },
+        {
+          questionText: 'Where do you see yourself in 5 years?',
+          questionType: 'behavioral',
+          skillTag: 'career-planning'
+        },
+        {
+          questionText: 'Why are you interested in this position?',
+          questionType: 'behavioral',
+          skillTag: 'motivation'
+        }
+      ]
     }
 
-    const body = await request.json()
-    const { jobId, jobTitle, jobDescription, companyName, difficulty = 'intermediate', duration = 30, experience = 'entry' } = body
+    // Create the interview session
+    const sessionResult = await db
+      .insert(interviewSessions)
+      .values({
+        candidateId: userId,
+        jobId: jobId || null,
+        status: 'pending',
+        scheduledAt: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date()
+      })
+      .returning()
 
-    // Create or get job description
-    let actualJobId = jobId
-    if (!actualJobId) {
-      const newJob = await db.insert(jobDescriptions).values({
-        title: jobTitle || 'General Interview',
-        company: companyName || 'Tech Company',
-        description: jobDescription || 'A general technical interview',
-        location: 'Remote',
-        jobType: 'full-time',
-        experience: experience,
-        requiredSkills: [],
-        difficulty: difficulty as 'beginner' | 'intermediate' | 'advanced',
-        estimatedTime: duration,
-        questionsCount: 5,
-        createdBy: userId,
+    const session = sessionResult[0]
+
+    // Create questions for this session
+    const questionPromises = generatedQuestions.map((q, index) =>
+      db.insert(interviewQuestions).values({
+        sessionId: session.id,
+        questionText: q.questionText,
+        questionType: (q.questionType || 'behavioral') as 'behavioral' | 'technical' | 'situational',
+        skillTag: q.skillTag,
+        difficulty: 'intermediate',
+        order: index + 1,
         createdAt: new Date(),
         updatedAt: new Date()
       }).returning()
-      actualJobId = newJob[0].id
-    }
+    )
 
-    // Create interview session
-    const session = await db.insert(interviewSessions).values({
-      candidateId: userId,
-      jobId: actualJobId,
-      status: 'pending',
-      scheduledAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    }).returning()
-    
-    const sessionId = session[0].id
+    const createdQuestions = await Promise.all(questionPromises)
 
-    // Generate default questions if none provided
-    const questions = body.questions || []
-
-    // Generate initial questions (mock for now, will integrate with AI)
-    const initialQuestions = [
-      {
-        questionText: `Tell me about yourself and your experience relevant to the ${jobTitle || 'position'}.`,
-        type: 'behavioral' as const,
-        difficulty: 'beginner' as const,
-        timeLimit: 120,
-        order: 1
-      },
-      {
-        questionText: 'What are your greatest strengths and how do they align with this role?',
-        type: 'behavioral' as const,
-        difficulty: 'beginner' as const,
-        timeLimit: 120,
-        order: 2
-      },
-      {
-        questionText: 'Describe a challenging technical problem you solved recently.',
-        type: 'technical' as const,
-        difficulty: difficulty as 'beginner' | 'intermediate' | 'advanced',
-        timeLimit: 180,
-        order: 3
-      },
-      {
-        questionText: 'How do you stay updated with the latest technology trends?',
-        type: 'behavioral' as const,
-        difficulty: 'beginner' as const,
-        timeLimit: 120,
-        order: 4
-      },
-      {
-        questionText: 'Where do you see yourself in 5 years?',
-        type: 'behavioral' as const,
-        difficulty: 'beginner' as const,
-        timeLimit: 120,
-        order: 5
-      }
-    ]
-
-    // Combine with any provided questions
-    const allQuestions = [...questions, ...initialQuestions]
-
-    // Insert questions into database
-    for (const [index, question] of allQuestions.entries()) {
-      await db.insert(interviewQuestions).values({
-        sessionId,
-        questionText: question.questionText,
-        type: question.type || 'behavioral',
-        skillTag: question.skillTag || 'general',
-        difficulty: question.difficulty || 'intermediate',
-        timeLimit: question.timeLimit || 120,
-        order: index + 1
-      })
-    }
-    
     return NextResponse.json({
-      success: true,
-      sessionId,
-      message: 'Interview session created successfully',
-      totalQuestions: allQuestions.length,
-      estimatedDuration: duration
+      session: {
+        ...session,
+        jobTitle: jobData?.title || 'General Interview',
+        jobDescription: jobData?.description || null,
+        questions: createdQuestions.map(q => q[0])
+      },
+      message: 'Interview session created successfully'
     })
-
   } catch (error) {
     console.error('Error creating interview session:', error)
-    return NextResponse.json(
-      { error: 'Failed to create interview session' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
   }
 }

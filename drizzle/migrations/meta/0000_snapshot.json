@@ -1,5 +1,5 @@
 {
-  "id": "86cadb21-22a5-4985-8961-10e52af45088",
+  "id": "bda48178-4d93-413a-a7a6-3b060d60589b",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -357,18 +357,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "started_at": {
-          "name": "started_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "completed_at": {
-          "name": "completed_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": false
-        },
         "status": {
           "name": "status",
           "type": "interview_status",
@@ -382,38 +370,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "recording_url": {
-          "name": "recording_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "overall_score": {
-          "name": "overall_score",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "notes": {
-          "name": "notes",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
         },
         "total_score": {
           "name": "total_score",
@@ -432,6 +388,20 @@
           "type": "json",
           "primaryKey": false,
           "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
         }
       },
       "indexes": {},
@@ -574,8 +544,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.job_descriptions": {
-      "name": "job_descriptions",
+    "public.interview_transcripts": {
+      "name": "interview_transcripts",
       "schema": "",
       "columns": {
         "id": {
@@ -585,98 +555,53 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "title": {
-          "name": "title",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "company": {
-          "name": "company",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "required_skills": {
-          "name": "required_skills",
-          "type": "json",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "location": {
-          "name": "location",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "salary_range": {
-          "name": "salary_range",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "job_type": {
-          "name": "job_type",
-          "type": "job_type",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'full-time'"
-        },
-        "experience_level": {
-          "name": "experience_level",
-          "type": "difficulty",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'intermediate'"
-        },
-        "is_remote": {
-          "name": "is_remote",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": false,
-          "default": false
-        },
-        "posted_by_id": {
-          "name": "posted_by_id",
+        "session_id": {
+          "name": "session_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "is_active": {
-          "name": "is_active",
-          "type": "boolean",
+        "question_id": {
+          "name": "question_id",
+          "type": "uuid",
           "primaryKey": false,
-          "notNull": false,
-          "default": true
+          "notNull": false
         },
-        "estimated_time": {
-          "name": "estimated_time",
+        "speaker": {
+          "name": "speaker",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "text": {
+          "name": "text",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration": {
+          "name": "duration",
           "type": "integer",
           "primaryKey": false,
-          "notNull": false,
-          "default": 30
+          "notNull": false
         },
-        "questions_count": {
-          "name": "questions_count",
-          "type": "integer",
+        "confidence": {
+          "name": "confidence",
+          "type": "real",
           "primaryKey": false,
-          "notNull": false,
-          "default": 5
+          "notNull": false
         },
-        "applicants": {
-          "name": "applicants",
-          "type": "integer",
+        "emotion": {
+          "name": "emotion",
+          "type": "varchar(50)",
           "primaryKey": false,
-          "notNull": false,
-          "default": 0
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
@@ -695,12 +620,124 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "job_descriptions_posted_by_id_users_id_fk": {
-          "name": "job_descriptions_posted_by_id_users_id_fk",
+        "interview_transcripts_session_id_interview_sessions_id_fk": {
+          "name": "interview_transcripts_session_id_interview_sessions_id_fk",
+          "tableFrom": "interview_transcripts",
+          "tableTo": "interview_sessions",
+          "columnsFrom": [
+            "session_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "interview_transcripts_question_id_interview_questions_id_fk": {
+          "name": "interview_transcripts_question_id_interview_questions_id_fk",
+          "tableFrom": "interview_transcripts",
+          "tableTo": "interview_questions",
+          "columnsFrom": [
+            "question_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.job_descriptions": {
+      "name": "job_descriptions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "title": {
+          "name": "title",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company": {
+          "name": "company",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "requirements": {
+          "name": "requirements",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "skills": {
+          "name": "skills",
+          "type": "json",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "difficulty": {
+          "name": "difficulty",
+          "type": "difficulty",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'intermediate'"
+        },
+        "is_active": {
+          "name": "is_active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": false,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "job_descriptions_user_id_users_id_fk": {
+          "name": "job_descriptions_user_id_users_id_fk",
           "tableFrom": "job_descriptions",
           "tableTo": "users",
           "columnsFrom": [
-            "posted_by_id"
+            "user_id"
           ],
           "columnsTo": [
             "id"

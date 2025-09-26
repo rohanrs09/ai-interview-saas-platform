@@ -76,58 +76,65 @@ export async function POST(request: NextRequest) {
       // Update or create candidate profile in a transaction
       await db.transaction(async (tx) => {
         const existingProfile = await tx
-          .select()
+          .select({
+            id: candidateProfiles.id,
+            userId: candidateProfiles.userId,
+            resumeText: candidateProfiles.resumeText,
+            extractedSkills: candidateProfiles.extractedSkills,
+            experience: candidateProfiles.experience,
+            education: candidateProfiles.education,
+          })
           .from(candidateProfiles)
           .where(eq(candidateProfiles.userId, userId))
-          .limit(1)
+          .limit(1);
+          
+            const now = new Date();
+            const profileData = {
+              resumeText,
+              extractedSkills: skills,
+              experience: typeof experience === 'string' ? experience : 'Entry level',
+              education: Array.isArray(focusAreas) ? focusAreas.join(', ') : '',
+              updatedAt: now
+            };
 
-        const now = new Date();
-        const profileData = {
-          resumeText,
-          extractedSkills: skills,
-          experience: typeof experience === 'string' ? experience : 'Entry level',
-          education: Array.isArray(focusAreas) ? focusAreas.join(', ') : '',
-          updatedAt: now
-        };
-
-        if (existingProfile.length > 0) {
-          // Update existing profile
-          await tx
+            if(existingProfile.length > 0) {
+              // Update existing profile
+              await tx
             .update(candidateProfiles)
-            .set(profileData)
-            .where(eq(candidateProfiles.userId, userId))
-        } else {
-          // Create new profile
-          await tx.insert(candidateProfiles).values({
-            userId,
-            ...profileData,
-            createdAt: now
-          })
-        }
+          .set(profileData)
+          .where(eq(candidateProfiles.userId, userId))
+      } else {
+        // Create new profile
+        await tx.insert(candidateProfiles).values({
+          userId,
+          ...profileData,
+          createdAt: now
+        })
+      }
       });
 
-      return NextResponse.json({
-        success: true,
-        extractedSkills: skills,
-        experience,
-        achievements,
-        focusAreas,
-        message: 'Resume uploaded and analyzed successfully'
-      });
-
-    } catch (error) {
-      console.error('Database error during resume upload:', error);
-      return NextResponse.json(
-        { error: 'Failed to save resume data. Please try again.' },
-        { status: 500 }
-      )
-    }
+    return NextResponse.json({
+      success: true,
+      extractedSkills: skills,
+      experience,
+      achievements,
+      focusAreas,
+      message: 'Resume uploaded and analyzed successfully'
+    });
 
   } catch (error) {
-    console.error('Unexpected error in resume upload:', error);
+    console.error('Database error during resume upload:', error);
     return NextResponse.json(
-      { error: 'An unexpected error occurred. Please try again later.' },
+      { error: 'Failed to save resume data. Please try again.' },
       { status: 500 }
     )
   }
+
+} catch (error) {
+  console.error('Unexpected error in resume upload:', error);
+  return NextResponse.json(
+    { error: 'An unexpected error occurred. Please try again later.' },
+    { status: 500 }
+  )
+}
 }

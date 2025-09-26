@@ -106,24 +106,20 @@ export default function InterviewsPage() {
 
   const handleCreateInterview = async () => {
     try {
-      const response = await fetch('/api/interviews/create-session', {
+      const response = await fetch('/api/interviews', {  // Changed endpoint
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          jobTitle: formData.jobTitle,
-          jobDescription: formData.jobDescription,
-          companyName: formData.companyName,
-          experience: formData.experience,
-          difficulty: formData.difficulty,
-          duration: parseInt(formData.duration)
+          jobId: 'YOUR_JOB_ID_HERE'  // You need to get this from your jobs list
         })
-      })
+      });
 
-      if (response.ok) {
-        const data = await response.json()
-        router.push(`/interviews/${data.sessionId}`)
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Failed to create interview session:', error);
+        return;  // Add this to prevent navigation on error
       } else {
         console.error('Failed to create interview session')
       }

@@ -1,13 +1,14 @@
 'use client'
 
-import { redirect } from 'next/navigation'
+import { redirect, useRouter } from 'next/navigation'
 import { useUser } from '@clerk/nextjs'
 import { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Brain, FileText, BarChart3, TrendingUp, Users, Briefcase, ArrowRight, Target, Calendar, Clock, CheckCircle, Play, AlertCircle } from 'lucide-react'
+import { Brain, FileText, BarChart3, TrendingUp, Users, Briefcase, ArrowRight, Target, Calendar, Clock, CheckCircle, Play, AlertCircle, UserCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { DashboardLayout } from '@/components/dashboard-layout'
+import type { UserRole } from '@/lib/clerk'
 
 export default function DashboardPage() {
   const { user, isLoaded } = useUser()
@@ -26,21 +27,51 @@ export default function DashboardPage() {
   const [recentActivity, setRecentActivity] = useState<any[]>([])
   const [upcomingInterviews, setUpcomingInterviews] = useState<any[]>([])
 
+  const router = useRouter()
+  const [showRoleSelector, setShowRoleSelector] = useState(false)
+
+  // Function to update user role
+  const updateRole = async (role: UserRole) => {
+    try {
+      const response = await fetch('/api/users/update-role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role }),
+      })
+
+      if (response.ok) {
+        // Redirect based on selected role
+        router.push(role === 'recruiter' ? '/dashboard/recruiter' : '/dashboard')
+        router.refresh()
+      }
+    } catch (error) {
+      console.error('Error updating user role:', error)
+    }
+  }
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       if (!user) return
       
       try {
-        // Determine user role
-        const role = user.publicMetadata?.role as 'candidate' | 'recruiter'
+        // Determine user role from Clerk metadata
+        const role = user.publicMetadata?.role as UserRole | undefined
+        
         if (role) {
           setUserRole(role)
+          
+          // Redirect based on role
+          if (role === 'recruiter') {
+            router.push('/dashboard/recruiter')
+            return
+          }
         } else {
-          const email = user.emailAddresses[0]?.emailAddress || ''
-          const isRecruiter = email.includes('@company.com') || 
-                            email.includes('@hr.') || 
-                            email.includes('recruiter')
-          setUserRole(isRecruiter ? 'recruiter' : 'candidate')
+          // Show role selector if no role is set
+          setShowRoleSelector(true)
+          setLoading(false)
+          return
         }
 
         // Fetch stats based on role
@@ -94,6 +125,43 @@ export default function DashboardPage() {
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
             <p className="mt-2 text-gray-600">Loading dashboard...</p>
           </div>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  // Show role selector if needed
+  if (showRoleSelector) {
+    return (
+      <DashboardLayout>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-md mx-auto">
+          <Card className="w-full">
+            <CardHeader>
+              <CardTitle>Welcome to AI Interview</CardTitle>
+              <CardDescription>
+                Please select your role to continue
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <Button 
+                onClick={() => updateRole('candidate')} 
+                className="w-full flex items-center justify-center gap-2 py-6"
+                variant="outline"
+              >
+                <UserCircle2 className="h-5 w-5" />
+                I'm a Candidate
+              </Button>
+              
+              <Button 
+                onClick={() => updateRole('recruiter')} 
+                className="w-full flex items-center justify-center gap-2 py-6"
+                variant="outline"
+              >
+                <Briefcase className="h-5 w-5" />
+                I'm a Recruiter
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </DashboardLayout>
     )
